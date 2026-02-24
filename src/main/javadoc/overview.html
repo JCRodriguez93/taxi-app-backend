@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Taxi App Backend - Overview</title>
+    <link rel="stylesheet" type="text/css" href="overview.css">
+</head>
+<body>
+
+<h1>Taxi App Backend</h1>
+
+<p>
+Backend desarrollado en <b>Spring Boot</b> para la predicción de precios de viajes de taxi
+mediante integración con un servicio externo de Machine Learning.
+</p>
+
+<h2>Arquitectura</h2>
+
+<p>
+La aplicación sigue una <b>arquitectura hexagonal (Ports &amp; Adapters)</b>, separando
+claramente la lógica de negocio de la infraestructura.
+</p>
+
+<ul>
+    <li><b>Domain:</b> Entidades del sistema (Trip).</li>
+    <li><b>Application:</b> Casos de uso y puertos de entrada/salida.</li>
+    <li><b>Infrastructure:</b> Controladores REST, cliente HTTP, repositorios JPA y configuración.</li>
+</ul>
+
+<h2>Flujo Principal</h2>
+
+<ol>
+    <li>El cliente envía un POST a <code>/prediction</code>.</li>
+    <li>El controlador valida los datos (TripRequest).</li>
+    <li>El UseCase solicita la predicción al servicio ML externo.</li>
+    <li>Se crea un objeto Trip con el precio estimado.</li>
+    <li>El viaje se persiste en base de datos.</li>
+    <li>Se devuelve la respuesta al cliente.</li>
+</ol>
+
+<h2>Tecnologías Utilizadas</h2>
+
+<ul>
+    <li>Spring Boot</li>
+    <li>Spring Web</li>
+    <li>Spring Data JPA</li>
+    <li>RestTemplate</li>
+    <li>Hibernate Validator</li>
+	<li>PostgreSQL</li>
+    <li>JUnit 5 + Mockito</li>
+    <li>JaCoCo (100% code coverage)</li>
+</ul>
+
+<h2>Calidad y Testing</h2>
+
+<p>
+La aplicación cuenta con pruebas unitarias y de integración,
+alcanzando un 100% de cobertura de código mediante JaCoCo.
+</p>
+
+<h2>Configuración</h2>
+
+<p>
+La URL del servicio de Machine Learning se externaliza mediante
+<code>MlServiceProperties</code>, permitiendo configuración por entorno.
+</p>
+
+<hr>
+
+<p>
+Proyecto desarrollado como backend profesional preparado para entorno productivo.
+</p>
+
+</body>
+</html>

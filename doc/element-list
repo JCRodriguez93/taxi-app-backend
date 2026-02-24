@@ -1,0 +1,11 @@
+com.jorge.taxi
+com.jorge.taxi.application.dto
+com.jorge.taxi.application.exception
+com.jorge.taxi.application.port.out
+com.jorge.taxi.application.usecase
+com.jorge.taxi.domain
+com.jorge.taxi.infrastructure.client
+com.jorge.taxi.infrastructure.config
+com.jorge.taxi.infrastructure.controller
+com.jorge.taxi.infrastructure.repository
+com.jorge.taxi.infrastructure.web
