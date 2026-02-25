@@ -2,6 +2,7 @@ package com.jorge.taxi.domain;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 /**
  * Entidad que representa un viaje realizado por un cliente.
@@ -24,7 +25,7 @@ import java.time.LocalDateTime;
  * </ul>
  * 
  * @author Jorge Campos Rodríguez
- * @version 1.0.0
+ * @version 1.0.1
  * @see com.jorge.taxi.application.usecase.PredictTripPriceUseCase
  * @see jakarta.persistence.Entity
  * @see jakarta.persistence.Table
@@ -33,21 +34,25 @@ import java.time.LocalDateTime;
 @Table(name = "trips")
 public class Trip {
 
-    /** Identificador único del viaje. */
+    /** Identificador único del viaje, generado automáticamente. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** Distancia del viaje en kilómetros. */
+    /** Distancia del viaje en kilómetros, siempre positiva. */
+    @Column(nullable = false)
     private double distance_km;
 
-    /** Duración del viaje en minutos. */
+    /** Duración del viaje en minutos, siempre positiva. */
+    @Column(nullable = false)
     private double duration_min;
 
-    /** Precio estimado calculado del viaje. */
+    /** Precio estimado calculado del viaje, siempre positivo. */
+    @Column(nullable = false)
     private double estimated_price;
 
-    /** Fecha y hora de creación del viaje. */
+    /** Fecha y hora de creación del viaje, asignada automáticamente. */
+    @Column(nullable = false, updatable = false)
     private LocalDateTime created_at;
 
     /** Constructor por defecto requerido por JPA. */
@@ -67,6 +72,13 @@ public class Trip {
         this.created_at = LocalDateTime.now();
     }
 
+    @PrePersist
+    protected void onCreate() {
+        if (created_at == null) {
+            created_at = LocalDateTime.now();
+        }
+    }
+
     // ==================== GETTERS ====================
 
     public Long getId() { return id; }
@@ -77,9 +89,42 @@ public class Trip {
 
     // ==================== SETTERS ====================
 
-    public void setId(Long id) { this.id = id; }
     public void setDistance_km(double distance_km) { this.distance_km = distance_km; }
     public void setDuration_min(double duration_min) { this.duration_min = duration_min; }
     public void setEstimated_price(double estimated_price) { this.estimated_price = estimated_price; }
-    public void setCreated_at(LocalDateTime created_at) { this.created_at = created_at; }
+
+    // ==================== HASHCODE ====================
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(created_at, distance_km, duration_min, estimated_price, id);
+	}
+
+    // ==================== EQUALS ====================
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		Trip other = (Trip) obj;
+		return Objects.equals(created_at, other.created_at)
+				&& Double.doubleToLongBits(distance_km) == Double.doubleToLongBits(other.distance_km)
+				&& Double.doubleToLongBits(duration_min) == Double.doubleToLongBits(other.duration_min)
+				&& Double.doubleToLongBits(estimated_price) == Double.doubleToLongBits(other.estimated_price)
+				&& Objects.equals(id, other.id);
+	}
+	
+    // ==================== TOSTRING ====================
+
+	@Override
+	public String toString() {
+		return "Trip [id=" + id + ", distance_km=" + distance_km + ", duration_min=" + duration_min
+				+ ", estimated_price=" + estimated_price + ", created_at=" + created_at + "]";
+	}
+  
+    
 }

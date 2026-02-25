@@ -8,7 +8,7 @@ package com.jorge.taxi.application.exception;
  * de los detalles de infraestructura.
  *
  * @author Jorge Campos Rodríguez
- * @version 1.0.0
+ * @version 1.0.1
  * @see com.jorge.taxi.application.port.out.MlPredictionPort
  */
  

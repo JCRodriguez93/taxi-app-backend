@@ -18,10 +18,13 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Test unitario para {@link PredictTripPriceUseCase}.
- * <p>
- * Se verifica que el cálculo del precio del viaje funciona correctamente y que
- * las excepciones se lanzan si el servicio de predicción falla.
- * </p>
+ *
+ * Se cubren todos los caminos lógicos:
+ * - Predicción correcta
+ * - Fallo del servicio ML
+ * - Valores inválidos (warnings)
+ * - Valores extremadamente altos (warnings)
+ * - Fallo al persistir el Trip
  */
 class PredictTripPriceUseCaseTest {
 
@@ -36,60 +39,112 @@ class PredictTripPriceUseCaseTest {
 
     @BeforeEach
     void setUp() {
-        // Inicializamos mocks antes de cada test
         MockitoAnnotations.openMocks(this);
     }
 
-    /**
-     * Prueba que el UseCase calcula correctamente el precio estimado y
-     * guarda el viaje en el repositorio.
-     */
+    // ============================================================
+    // 1. Flujo correcto
+    // ============================================================
+
     @Test
     @DisplayName("Debería calcular correctamente el precio del viaje")
     void predictPrice_shouldReturnTripWithCorrectPrice() {
-        // Datos de entrada
         double distance = 10.0;
         double duration = 15.0;
 
-        // 🔹 Simulamos la predicción del servicio ML
         when(mlPredictionPort.predict(distance, duration)).thenReturn(25.0);
-
-        // 🔹 Simulamos el guardado en el repositorio
-        when(tripRepositoryPort.save(any(Trip.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(tripRepositoryPort.save(any(Trip.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
         Trip trip = predictTripPriceUseCase.execute(distance, duration);
 
-        // Verificamos que el precio calculado es correcto
         assertEquals(25.0, trip.getEstimated_price());
-
-        // Verificamos que los mocks fueron llamados correctamente
-        verify(mlPredictionPort, times(1)).predict(distance, duration);
-        verify(tripRepositoryPort, times(1)).save(any(Trip.class));
+        verify(mlPredictionPort).predict(distance, duration);
+        verify(tripRepositoryPort).save(any(Trip.class));
     }
 
-    /**
-     * Prueba que se lanza una excepción si el servicio ML falla
-     * y que el repositorio no es llamado.
-     */
+    // ============================================================
+    // 2. Fallo del servicio ML
+    // ============================================================
+
     @Test
     @DisplayName("Debería lanzar excepción si el servicio ML falla")
     void predictPrice_whenMLFails_shouldThrowException() {
         double distance = 10.0;
         double duration = 15.0;
 
-        // 🔹 Simulamos fallo del servicio ML
         when(mlPredictionPort.predict(distance, duration))
                 .thenThrow(new PredictionServiceUnavailableException("ML service unavailable"));
 
-        // Verificamos que se lanza la excepción
-        PredictionServiceUnavailableException exception = assertThrows(
+        PredictionServiceUnavailableException ex = assertThrows(
                 PredictionServiceUnavailableException.class,
                 () -> predictTripPriceUseCase.execute(distance, duration)
         );
 
-        assertEquals("ML service unavailable", exception.getMessage());
+        assertTrue(ex.getMessage().contains("No se pudo obtener la predicción"));
+        verify(tripRepositoryPort, never()).save(any());
+    }
 
-        // 🔹 El repositorio no debe ser llamado si ML falla
-        verify(tripRepositoryPort, never()).save(any(Trip.class));
+    // ============================================================
+    // 3. Fallo al persistir el Trip
+    // ============================================================
+
+    @Test
+    @DisplayName("Debería lanzar excepción si falla la persistencia del viaje")
+    void predictPrice_whenRepositoryFails_shouldThrowException() {
+        double distance = 10.0;
+        double duration = 15.0;
+
+        when(mlPredictionPort.predict(distance, duration)).thenReturn(30.0);
+        when(tripRepositoryPort.save(any()))
+                .thenThrow(new RuntimeException("DB error"));
+
+        PredictionServiceUnavailableException ex = assertThrows(
+                PredictionServiceUnavailableException.class,
+                () -> predictTripPriceUseCase.execute(distance, duration)
+        );
+
+        assertTrue(ex.getMessage().contains("No se pudo guardar el viaje"));
+        verify(mlPredictionPort).predict(distance, duration);
+    }
+
+    // ============================================================
+    // 4. Valores inválidos (warnings)
+    // ============================================================
+
+    @Test
+    @DisplayName("Debería permitir valores inválidos pero continuar el flujo")
+    void predictPrice_withInvalidValues_shouldStillWork() {
+        double distance = -5.0;
+        double duration = 0.0;
+
+        when(mlPredictionPort.predict(distance, duration)).thenReturn(10.0);
+        when(tripRepositoryPort.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Trip trip = predictTripPriceUseCase.execute(distance, duration);
+
+        assertEquals(10.0, trip.getEstimated_price());
+        verify(mlPredictionPort).predict(distance, duration);
+        verify(tripRepositoryPort).save(any());
+    }
+
+    // ============================================================
+    // 5. Valores extremadamente altos (warnings)
+    // ============================================================
+
+    @Test
+    @DisplayName("Debería permitir valores extremadamente altos y continuar el flujo")
+    void predictPrice_withExtremeValues_shouldStillWork() {
+        double distance = 2000.0;   // > 1000
+        double duration = 2000.0;   // > 1440
+
+        when(mlPredictionPort.predict(distance, duration)).thenReturn(99.0);
+        when(tripRepositoryPort.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Trip trip = predictTripPriceUseCase.execute(distance, duration);
+
+        assertEquals(99.0, trip.getEstimated_price());
+        verify(mlPredictionPort).predict(distance, duration);
+        verify(tripRepositoryPort).save(any());
     }
 }

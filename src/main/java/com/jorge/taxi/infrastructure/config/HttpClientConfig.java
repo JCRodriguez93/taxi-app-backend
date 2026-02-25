@@ -1,34 +1,45 @@
 package com.jorge.taxi.infrastructure.config;
 
+import java.time.Duration;
+
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestTemplate;
 
 /**
  * Configuración de clientes HTTP de la aplicación.
- * 
- * <p>Proporciona un {@link RestTemplate} como bean de Spring
- * que puede ser inyectado en cualquier componente que necesite
- * hacer llamadas HTTP (por ejemplo, {@link com.jorge.taxi.infrastructure.client.MlHttpClient}).</p>
  *
- * <p>Al centralizar la creación de {@code RestTemplate} en un bean,
- * se facilita la personalización futura, como añadir interceptores,
- * timeouts o logging de peticiones.</p>
- * 
+ * <p>Define un {@link RestTemplate} configurado con tiempos máximos
+ * de conexión y lectura para evitar bloqueos indefinidos al
+ * comunicarse con servicios externos.</p>
+ *
+ * <p>Permite centralizar configuraciones como timeouts,
+ * interceptores o mecanismos de resiliencia.</p>
+ *
  * @author Jorge Campos Rodríguez
- * @version 1.0.0
- * @see RestTemplate
+ * @version 1.0.1
  */
 @Configuration
 public class HttpClientConfig {
 
     /**
-     * Crea un bean de {@link RestTemplate} para inyección en componentes.
+     * Crea un {@link RestTemplate} configurado con timeouts.
      *
-     * @return un RestTemplate configurado por defecto
+     * <ul>
+     *   <li>Connect timeout: tiempo máximo para establecer conexión.</li>
+     *   <li>Read timeout: tiempo máximo esperando respuesta.</li>
+     * </ul>
+     *
+     * @param builder builder proporcionado por Spring Boot
+     * @return RestTemplate configurado con timeouts
      */
     @Bean
-    public RestTemplate restTemplate() {
-        return new RestTemplate();
+    public RestTemplate restTemplate(RestTemplateBuilder builder) {
+
+        return builder
+                .setConnectTimeout(Duration.ofSeconds(3))
+                .setReadTimeout(Duration.ofSeconds(5))
+                .build();
     }
 }

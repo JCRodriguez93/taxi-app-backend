@@ -3,11 +3,12 @@ spring:
     url: jdbc:postgresql://localhost:5432/taxi_db
     username: postgres
     password: admin
+    driver-class-name: org.postgresql.Driver
 
   jpa:
     hibernate:
-      ddl-auto: update
-    show-sql: true
+      ddl-auto: update   # En producción usar validate o none
+    show-sql: false      # Mejor usar logging en vez de show-sql
     properties:
       hibernate:
         format_sql: true
@@ -15,7 +16,30 @@ spring:
 server:
   port: 8080
 
-# URL del servicio de ML
+# ==============================
+# Configuración del servicio ML
+# ==============================
 ml:
   service:
     url: http://localhost:8000/predict
+
+# ==============================
+# Logging
+# ==============================
+logging:
+  level:
+    root: INFO
+
+    # Tu aplicación en modo detallado (útil en desarrollo)
+    com.jorge.taxi: DEBUG
+
+    # Hibernate (queries SQL)
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+
+  file:
+    name: taxi-app-backend.log
+
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%level] %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%level] %logger{36} - %msg%n"
