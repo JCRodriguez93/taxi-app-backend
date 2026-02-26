@@ -1,6 +1,7 @@
 com.jorge.taxi
 com.jorge.taxi.application.dto
 com.jorge.taxi.application.exception
+com.jorge.taxi.application.model
 com.jorge.taxi.application.port.out
 com.jorge.taxi.application.usecase
 com.jorge.taxi.domain

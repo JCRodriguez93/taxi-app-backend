@@ -5,10 +5,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import com.jorge.taxi.application.exception.PredictionServiceUnavailableException;
+import com.jorge.taxi.application.model.TripFeatures;
 import com.jorge.taxi.application.port.out.MlPredictionPort;
 import com.jorge.taxi.application.port.out.TripRepositoryPort;
 import com.jorge.taxi.domain.Trip;
-
 
 /**
  * Caso de uso encargado de predecir el precio estimado de un viaje.
@@ -28,10 +28,11 @@ import com.jorge.taxi.domain.Trip;
  * arquitectura <b>Ports &amp; Adapters</b> para separar responsabilidades.</p>
  *
  * @author Jorge Campos Rodríguez
- * @version 1.0.2
+ * @version 1.0.3
  * @see MlPredictionPort
  * @see TripRepositoryPort
  * @see Trip
+ * @see TripFeatures
  */
 @Service
 public class PredictTripPriceUseCase {
@@ -41,65 +42,50 @@ public class PredictTripPriceUseCase {
     private final MlPredictionPort mlPredictionPort;
     private final TripRepositoryPort tripRepositoryPort;
 
-    /**
-     * Constructor que inyecta los puertos necesarios para ejecutar el caso de uso.
-     *
-     * @param mlPredictionPort puerto de salida para obtener la predicción
-     *                         del servicio de Machine Learning
-     * @param tripRepositoryPort puerto de salida para persistir la entidad {@link Trip}
-     */
     public PredictTripPriceUseCase(MlPredictionPort mlPredictionPort,
                                    TripRepositoryPort tripRepositoryPort) {
         this.mlPredictionPort = mlPredictionPort;
         this.tripRepositoryPort = tripRepositoryPort;
     }
 
-    
     /**
-     * Ejecuta el caso de uso encargado de predecir el precio estimado
-     * de un viaje y persistirlo en el sistema.
+     * Ejecuta la predicción de precio estimado de un viaje a partir
+     * de un objeto {@link TripFeatures} y persiste el resultado.
      *
-     * <p>Este método implementa validaciones exhaustivas de entrada,
-     * control de coherencia de datos, manejo de errores externos
-     * (servicio ML) y errores de persistencia.</p>
+     * <p>Se realizan validaciones técnicas, de negocio y de coherencia,
+     * se llama al ML y se valida el precio devuelto antes de persistir.</p>
      *
-     * <p>Flujo:</p>
-     * <ol>
-     *   <li>Validación técnica de parámetros.</li>
-     *   <li>Validación de rangos y coherencia.</li>
-     *   <li>Llamada al servicio ML.</li>
-     *   <li>Validación del precio devuelto.</li>
-     *   <li>Creación y persistencia del viaje.</li>
-     * </ol>
-     *
-     * @param distance_km  distancia del viaje en kilómetros (esperado > 0)
-     * @param duration_min duración estimada del viaje en minutos (esperado > 0)
-     *
+     * @param features objeto {@link TripFeatures} que contiene todos
+     *                 los atributos del viaje necesarios para la predicción
      * @return {@link Trip} persistido con ID generado
-     *
      * @throws IllegalArgumentException si los parámetros de entrada son inválidos
-     * @throws PredictionServiceUnavailableException si el ML falla
+     * @throws PredictionServiceUnavailableException si el ML falla o devuelve precio inválido
      * @throws RuntimeException si ocurre un error de persistencia
      */
-    public Trip execute(double distance_km, double duration_min) {
+    public Trip execute(TripFeatures features) {
 
-        logger.info("Inicio ejecución PredictTripPriceUseCase -> distancia={} km, duración={} min",
-                distance_km, duration_min);
+        logger.info("Inicio ejecución PredictTripPriceUseCase -> features={}", features);
 
         // ================= VALIDACIÓN TÉCNICA =================
+        if (features == null) {
+            logger.error("Objeto TripFeatures nulo");
+            throw new IllegalArgumentException("TripFeatures no puede ser nulo");
+        }
+
+        double distance_km = features.getDistance_km();
+        double duration_min = features.getDuration_min();
 
         if (Double.isNaN(distance_km) || Double.isNaN(duration_min)) {
-            logger.error("Valores NaN detectados en parámetros de entrada");
+            logger.error("Valores NaN detectados en TripFeatures");
             throw new IllegalArgumentException("Los valores no pueden ser NaN");
         }
 
         if (Double.isInfinite(distance_km) || Double.isInfinite(duration_min)) {
-            logger.error("Valores infinitos detectados en parámetros de entrada");
+            logger.error("Valores infinitos detectados en TripFeatures");
             throw new IllegalArgumentException("Los valores no pueden ser infinitos");
         }
 
         // ================= VALIDACIÓN DE NEGOCIO =================
-
         if (distance_km <= 0) {
             logger.warn("Distancia inválida recibida: {}", distance_km);
             throw new IllegalArgumentException("La distancia debe ser mayor que cero");
@@ -118,21 +104,17 @@ public class PredictTripPriceUseCase {
             logger.warn("Duración extremadamente alta detectada: {} minutos", duration_min);
         }
 
-        // Validación básica de coherencia (ejemplo: 1 km en 5 horas no tiene sentido)
+        // Validación básica de coherencia (velocidad media)
         double avgSpeed = distance_km / (duration_min / 60.0);
         if (avgSpeed < 1 || avgSpeed > 300) {
             logger.warn("Velocidad media sospechosa detectada: {} km/h", avgSpeed);
         }
 
         // ================= LLAMADA AL SERVICIO ML =================
-
         double price;
-
         try {
-            price = mlPredictionPort.predict(distance_km, duration_min);
-
+            price = mlPredictionPort.predict(features);
             logger.debug("Respuesta ML recibida -> precio={}", price);
-
         } catch (PredictionServiceUnavailableException e) {
             logger.error("Servicio ML no disponible", e);
             throw e;
@@ -143,7 +125,6 @@ public class PredictTripPriceUseCase {
         }
 
         // ================= VALIDACIÓN DEL PRECIO =================
-
         if (Double.isNaN(price) || Double.isInfinite(price)) {
             logger.error("Precio inválido recibido del ML: {}", price);
             throw new PredictionServiceUnavailableException(
@@ -163,13 +144,10 @@ public class PredictTripPriceUseCase {
         logger.info("Predicción completada correctamente -> precio estimado={}", price);
 
         // ================= CREACIÓN DEL DOMINIO =================
-
         Trip trip = new Trip(distance_km, duration_min, price);
-
         logger.debug("Objeto Trip creado antes de persistencia: {}", trip);
 
         // ================= PERSISTENCIA =================
-
         try {
             Trip savedTrip = tripRepositoryPort.save(trip);
 

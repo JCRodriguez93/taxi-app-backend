@@ -1,28 +1,46 @@
 package com.jorge.taxi.application.port.out;
 
+import com.jorge.taxi.application.model.TripFeatures;
+
 /**
- * Puerto de salida para la predicción de precios de viajes.
+ * Puerto de salida para la predicción del precio base de un viaje.
+ *
  * <p>
- * Define la abstracción para comunicarse con un servicio de Machine Learning
- * que calcula el precio estimado de un viaje según la distancia y duración.
+ * Define la abstracción que permite a la capa de aplicación comunicarse
+ * con un sistema externo de Machine Learning encargado de calcular
+ * el precio estimado a partir de un conjunto extensible de características.
  * </p>
+ *
  * <p>
- * Esta interfaz permite desacoplar la lógica de negocio de la implementación concreta
- * del servicio ML (puede ser un microservicio externo, librería local, etc.).
+ * Este puerto desacopla la lógica de negocio de la implementación concreta
+ * del modelo predictivo, permitiendo que el servicio ML sea:
  * </p>
- * 
+ * <ul>
+ *   <li>Un microservicio externo (HTTP)</li>
+ *   <li>Una librería local</li>
+ *   <li>Un motor de reglas</li>
+ *   <li>Un modelo embebido</li>
+ * </ul>
+ *
+ * <p>
+ * El contrato se basa en {@link TripFeatures}, lo que permite extender
+ * el modelo sin modificar la firma del método.
+ * </p>
+ *
  * @author Jorge Campos Rodríguez
- * @version 1.0.0
+ * @version 1.0.2
  * @see com.jorge.taxi.application.usecase.PredictTripPriceUseCase
  */
 public interface MlPredictionPort {
 
     /**
-     * Predice el precio de un viaje.
+     * Calcula el precio base estimado de un viaje a partir
+     * de un conjunto de características del mismo.
      *
-     * @param distance_km distancia del viaje en kilómetros
-     * @param duration_min duración del viaje en minutos
-     * @return precio estimado del viaje
+     * @param features características del viaje utilizadas por el modelo
+     * @return precio base estimado
+     * @throws com.jorge.taxi.application.exception.PredictionServiceUnavailableException
+     *         si el servicio de predicción no está disponible
      */
-    double predict(double distance_km, double duration_min);
+    double predict(TripFeatures features);
 }

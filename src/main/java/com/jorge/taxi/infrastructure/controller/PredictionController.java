@@ -3,6 +3,7 @@ package com.jorge.taxi.infrastructure.controller;
 import org.springframework.web.bind.annotation.*;
 
 import com.jorge.taxi.application.dto.TripRequest;
+import com.jorge.taxi.application.model.TripFeatures;
 import com.jorge.taxi.application.usecase.PredictTripPriceUseCase;
 import com.jorge.taxi.domain.Trip;
 import jakarta.validation.Valid;
@@ -16,7 +17,8 @@ import jakarta.validation.Valid;
  * <p>El flujo es:</p>
  * <ol>
  *   <li>Se valida el {@link TripRequest} usando las anotaciones de Jakarta Validation.</li>
- *   <li>Se invoca {@link PredictTripPriceUseCase#execute(double, double)} para calcular
+ *   <li>Se construye un objeto {@link TripFeatures} a partir del request.</li>
+ *   <li>Se invoca {@link PredictTripPriceUseCase#execute(TripFeatures)} para calcular
  *       el precio estimado.</li>
  *   <li>Se devuelve el objeto {@link Trip} persistido.</li>
  * </ol>
@@ -37,10 +39,7 @@ import jakarta.validation.Valid;
  * </pre>
  * 
  * @author Jorge Campos Rodríguez
- * @version 1.0.0
- * @see TripRequest
- * @see Trip
- * @see PredictTripPriceUseCase
+ * @version 1.0.2
  */
 @RestController
 @RequestMapping("/prediction")
@@ -60,9 +59,10 @@ public class PredictionController {
      */
     @PostMapping
     public Trip predict(@Valid @RequestBody TripRequest request) {
-        return useCase.execute(
-                request.getDistance_km(),
-                request.getDuration_min()
-        );
+        TripFeatures features = new TripFeatures();
+        features.setDistance_km(request.getDistance_km());
+        features.setDuration_min(request.getDuration_min());
+
+        return useCase.execute(features);
     }
 }

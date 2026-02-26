@@ -3,6 +3,7 @@ package com.jorge.taxi.domain;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Field;
 import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -56,18 +57,14 @@ class TripTest {
     }
 
     @Test
-    @DisplayName("equals() debería considerar iguales dos Trips con mismos valores")
-    void equals_shouldReturnTrueForEqualTrips() {
+    @DisplayName("equals() debería considerar iguales dos Trips con mismos valores (incluyendo created_at)")
+    void equals_shouldReturnTrueForEqualTrips() throws Exception {
         Trip t1 = new Trip(10.0, 20.0, 30.0);
         Trip t2 = new Trip(10.0, 20.0, 30.0);
 
-        // Igualamos created_at para que equals sea consistente
-        LocalDateTime now = LocalDateTime.now();
-        t1.onCreate();
-        t2.onCreate();
-
-        t1.getCreated_at().withNano(0);
-        t2.getCreated_at().withNano(0);
+        LocalDateTime now = LocalDateTime.now().withNano(0);
+        setCreatedAt(t1, now);
+        setCreatedAt(t2, now);
 
         assertEquals(t1, t2);
         assertEquals(t1.hashCode(), t2.hashCode());
@@ -96,6 +93,29 @@ class TripTest {
     }
 
     @Test
+    @DisplayName("equals() debería devolver true cuando se compara el objeto consigo mismo")
+    void equals_shouldReturnTrueWhenComparingSameInstance() {
+        Trip trip = new Trip(10.0, 20.0, 30.0);
+        trip.onCreate();
+
+        assertTrue(trip.equals(trip));
+    }
+
+    @Test
+    @DisplayName("hashCode() debería ser consistente con equals()")
+    void hashCode_shouldBeConsistentWithEquals() throws Exception {
+        Trip t1 = new Trip(5.0, 10.0, 15.0);
+        Trip t2 = new Trip(5.0, 10.0, 15.0);
+
+        LocalDateTime now = LocalDateTime.now().withNano(0);
+        setCreatedAt(t1, now);
+        setCreatedAt(t2, now);
+
+        assertEquals(t1, t2);
+        assertEquals(t1.hashCode(), t2.hashCode());
+    }
+
+    @Test
     @DisplayName("toString() debería contener información relevante del Trip")
     void toString_shouldContainFields() {
         Trip trip = new Trip(10.0, 20.0, 30.0);
@@ -108,14 +128,12 @@ class TripTest {
         assertTrue(str.contains("estimated_price"));
         assertTrue(str.contains("created_at"));
     }
-    
-    
-    @Test
-    @DisplayName("equals() debería devolver true cuando se compara el objeto consigo mismo")
-    void equals_shouldReturnTrueWhenComparingSameInstance() {
-        Trip trip = new Trip(10.0, 20.0, 30.0);
-        trip.onCreate();
 
-        assertTrue(trip.equals(trip));
+    // ==================== Helpers ====================
+
+    private void setCreatedAt(Trip trip, LocalDateTime value) throws Exception {
+        Field field = Trip.class.getDeclaredField("created_at");
+        field.setAccessible(true);
+        field.set(trip, value);
     }
 }

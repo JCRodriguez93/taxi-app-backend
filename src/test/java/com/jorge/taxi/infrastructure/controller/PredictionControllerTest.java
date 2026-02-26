@@ -4,7 +4,6 @@ import com.jorge.taxi.application.dto.TripRequest;
 import com.jorge.taxi.application.exception.PredictionServiceUnavailableException;
 import com.jorge.taxi.application.usecase.PredictTripPriceUseCase;
 import com.jorge.taxi.domain.Trip;
-import com.jorge.taxi.infrastructure.controller.PredictionController;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,6 +15,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import com.jorge.taxi.application.model.TripFeatures;
 
 @WebMvcTest(controllers = PredictionController.class)
 class PredictionControllerTest {
@@ -43,7 +43,8 @@ class PredictionControllerTest {
         trip.setDuration_min(10.0);
         trip.setEstimated_price(50.0);
 
-        when(predictTripPriceUseCase.execute(20.0, 10.0)).thenReturn(trip);
+        // CORREGIDO: usamos any(TripFeatures.class)
+        when(predictTripPriceUseCase.execute(any(TripFeatures.class))).thenReturn(trip);
 
         mockMvc.perform(post("/prediction")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -59,7 +60,8 @@ class PredictionControllerTest {
         request.setDistance_km(20.0);
         request.setDuration_min(10.0);
 
-        when(predictTripPriceUseCase.execute(20.0, 10.0))
+        // CORREGIDO: usamos any(TripFeatures.class)
+        when(predictTripPriceUseCase.execute(any(TripFeatures.class)))
                 .thenThrow(new PredictionServiceUnavailableException("ML service unavailable"));
 
         mockMvc.perform(post("/prediction")
@@ -68,7 +70,6 @@ class PredictionControllerTest {
                 .andExpect(status().isServiceUnavailable())
                 .andExpect(jsonPath("$.message").value("ML service unavailable"));
     }
-
     // ------------------ VALIDACIÓN DE CAMPOS ------------------
 
     @Test

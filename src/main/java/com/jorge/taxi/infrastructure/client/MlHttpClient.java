@@ -2,28 +2,35 @@ package com.jorge.taxi.infrastructure.client;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpStatusCodeException;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
-import com.jorge.taxi.application.dto.TripRequest;
 import com.jorge.taxi.application.dto.PredictionResponse;
 import com.jorge.taxi.application.exception.PredictionServiceUnavailableException;
+import com.jorge.taxi.application.model.TripFeatures;
 import com.jorge.taxi.application.port.out.MlPredictionPort;
 import com.jorge.taxi.infrastructure.config.MlServiceProperties;
+import com.jorge.taxi.application.dto.TripRequest;
 
 /**
- * Cliente HTTP que se comunica con el servicio de Machine Learning (ML)
- * para obtener predicciones de precios de viajes.
+ * Adaptador HTTP que implementa {@link MlPredictionPort}
+ * y se encarga de traducir las características del viaje
+ * en una llamada al microservicio de Machine Learning.
  *
- * <p>Implementa el puerto {@link MlPredictionPort} dentro de la capa
- * de infraestructura en la arquitectura hexagonal.</p>
- *
- * <p>Registra en nivel DEBUG las peticiones enviadas y respuestas recibidas,
- * en WARN respuestas inválidas y en ERROR fallos de comunicación.</p>
+ * <p>Responsabilidades:</p>
+ * <ul>
+ *   <li>Convertir {@link TripFeatures} en un DTO externo.</li>
+ *   <li>Gestionar la comunicación HTTP.</li>
+ *   <li>Validar la respuesta del servicio ML.</li>
+ *   <li>Traducir errores técnicos en excepciones de aplicación.</li>
+ * </ul>
  *
  * @author Jorge Campos Rodríguez
- * @version 1.0.1
+ * @version 1.0.3
  */
 @Component
 public class MlHttpClient implements MlPredictionPort {
@@ -34,37 +41,33 @@ public class MlHttpClient implements MlPredictionPort {
     private final RestTemplate restTemplate;
     private final MlServiceProperties properties;
 
-    /**
-     * Constructor del cliente ML.
-     *
-     * @param restTemplate cliente HTTP inyectado
-     * @param properties configuración con la URL del servicio ML
-     */
     public MlHttpClient(RestTemplate restTemplate, MlServiceProperties properties) {
         this.restTemplate = restTemplate;
         this.properties = properties;
     }
 
     /**
-     * Realiza una llamada HTTP POST al servicio externo de ML
-     * para obtener el precio estimado de un viaje.
+     * Realiza la llamada al servicio ML utilizando un conjunto
+     * extensible de características del viaje.
      *
-     * @param distance_km distancia del viaje en kilómetros
-     * @param duration_min duración del viaje en minutos
-     * @return precio estimado devuelto por el servicio ML
-     *
-     * @throws PredictionServiceUnavailableException
-     *         si ocurre un error de comunicación o si la respuesta es inválida
+     * @param features características del viaje utilizadas por el modelo
+     * @return precio base estimado
+     * @throws PredictionServiceUnavailableException si ocurre error de comunicación
+     *         o si la respuesta es inválida
      */
     @Override
-    public double predict(double distance_km, double duration_min) {
+    public double predict(TripFeatures features) {
 
-        logger.debug("Enviando petición al servicio ML: url={}, distance={}, duration={}",
-                properties.getUrl(), distance_km, duration_min);
+        long startTime = System.currentTimeMillis();
 
+        logger.debug("ML request -> url={}, features={}",
+                properties.getUrl(), features);
+
+        // Conversión Application → Infrastructure DTO
         TripRequest request = new TripRequest();
-        request.setDistance_km(distance_km);
-        request.setDuration_min(duration_min);
+        request.setDistance_km(features.getDistance_km());
+        request.setDuration_min(features.getDuration_min());
+        // Aquí podrás añadir más campos cuando el modelo evolucione
 
         try {
 
@@ -75,22 +78,49 @@ public class MlHttpClient implements MlPredictionPort {
                             PredictionResponse.class
                     );
 
+            long duration = System.currentTimeMillis() - startTime;
+
             if (response == null) {
-                logger.warn("Respuesta nula recibida del servicio ML");
+                logger.warn("ML response is null ({} ms)", duration);
                 throw new PredictionServiceUnavailableException(
-                        "Invalid response from ML service");
+                        "ML service returned null response");
             }
 
-            logger.debug("Respuesta recibida del servicio ML: estimated_price={}",
-                    response.getEstimated_price());
+            logger.debug("ML raw response -> {}", response);
 
-            return response.getEstimated_price();
+            Double price = response.getEstimated_price();
+
+            if (price == null || price.isNaN() || price.isInfinite() || price < 0) {
+                logger.warn("Invalid ML price received: {} ({} ms)", price, duration);
+                throw new PredictionServiceUnavailableException(
+                        "ML service returned invalid price value");
+            }
+
+            logger.info("ML prediction successful -> price={}, time={} ms",
+                    price, duration);
+
+            return price;
+
+        } catch (ResourceAccessException e) {
+
+            logger.error("Timeout or connection error calling ML service", e);
+            throw new PredictionServiceUnavailableException(
+                    "ML service timeout or connection error", e);
+
+        } catch (HttpStatusCodeException e) {
+
+            HttpStatusCode status = e.getStatusCode();
+            logger.error("ML service returned HTTP error: status={}, body={}",
+                    status, e.getResponseBodyAsString(), e);
+
+            throw new PredictionServiceUnavailableException(
+                    "ML service responded with HTTP error: " + status, e);
 
         } catch (RestClientException e) {
-            logger.error("Error de comunicación con el servicio ML", e);
+
+            logger.error("Unexpected REST error calling ML service", e);
             throw new PredictionServiceUnavailableException(
-                    "ML prediction service is unavailable: " + e.getMessage(), e
-            );
+                    "Unexpected ML communication error", e);
         }
     }
 }
