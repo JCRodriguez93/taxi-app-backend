@@ -28,7 +28,7 @@ import com.jorge.taxi.domain.Trip;
  * arquitectura <b>Ports &amp; Adapters</b> para separar responsabilidades.</p>
  *
  * @author Jorge Campos Rodríguez
- * @version 1.0.1
+ * @version 1.0.2
  * @see MlPredictionPort
  * @see TripRepositoryPort
  * @see Trip
@@ -59,83 +59,133 @@ public class PredictTripPriceUseCase {
      * Ejecuta el caso de uso encargado de predecir el precio estimado
      * de un viaje y persistirlo en el sistema.
      *
-     * <p>Flujo de ejecución:</p>
+     * <p>Este método implementa validaciones exhaustivas de entrada,
+     * control de coherencia de datos, manejo de errores externos
+     * (servicio ML) y errores de persistencia.</p>
+     *
+     * <p>Flujo:</p>
      * <ol>
-     *   <li>Registra el inicio de la operación junto con los parámetros recibidos.</li>
-     *   <li>Verifica si los valores de distancia o duración son anómalos
-     *       (negativos, cero o extremadamente altos) y los registra en el log.</li>
-     *   <li>Solicita al servicio externo de Machine Learning la predicción del precio
-     *       mediante {@link MlPredictionPort}.</li>
-     *   <li>Crea una nueva instancia de {@link Trip} con los datos obtenidos.</li>
-     *   <li>Persiste el viaje a través de {@link TripRepositoryPort}.</li>
+     *   <li>Validación técnica de parámetros.</li>
+     *   <li>Validación de rangos y coherencia.</li>
+     *   <li>Llamada al servicio ML.</li>
+     *   <li>Validación del precio devuelto.</li>
+     *   <li>Creación y persistencia del viaje.</li>
      * </ol>
      *
-     * <p>Se utilizan distintos niveles de logging:</p>
-     * <ul>
-     *   <li><b>INFO</b>: eventos principales del flujo.</li>
-     *   <li><b>WARN</b>: valores sospechosos o fuera de rango.</li>
-     *   <li><b>DEBUG</b>: detalles internos del objeto antes y después de persistir.</li>
-     *   <li><b>ERROR</b>: fallos en el servicio ML o en la persistencia.</li>
-     * </ul>
+     * @param distance_km  distancia del viaje en kilómetros (esperado > 0)
+     * @param duration_min duración estimada del viaje en minutos (esperado > 0)
      *
-     * @param distance_km  distancia del viaje en kilómetros.
-     *                     Se espera un valor positivo.
-     * @param duration_min duración estimada del viaje en minutos.
-     *                     Se espera un valor positivo.
+     * @return {@link Trip} persistido con ID generado
      *
-     * @return entidad {@link Trip} persistida, incluyendo el identificador
-     *         generado por la base de datos.
-     *
-     * @throws PredictionServiceUnavailableException
-     *         si el servicio de Machine Learning no responde correctamente
-     *         o si ocurre un error durante la persistencia.
+     * @throws IllegalArgumentException si los parámetros de entrada son inválidos
+     * @throws PredictionServiceUnavailableException si el ML falla
+     * @throws RuntimeException si ocurre un error de persistencia
      */
     public Trip execute(double distance_km, double duration_min) {
 
-    logger.info("Iniciando predicción de viaje: distancia={} km, duración={} min",
-            distance_km, duration_min);
-
-    // ================= VALIDACIONES DE RANGO =================
-    if (distance_km <= 0 || duration_min <= 0) {
-        logger.warn("Se recibió un viaje con valores no válidos: distancia={} km, duración={} min",
+        logger.info("Inicio ejecución PredictTripPriceUseCase -> distancia={} km, duración={} min",
                 distance_km, duration_min);
-    }
 
-    if (distance_km > 1000) {
-        logger.warn("Viaje extremadamente largo detectado: {} km", distance_km);
-    }
+        // ================= VALIDACIÓN TÉCNICA =================
 
-    if (duration_min > 1440) {
-        logger.warn("Duración extremadamente alta detectada: {} minutos", duration_min);
-    }
+        if (Double.isNaN(distance_km) || Double.isNaN(duration_min)) {
+            logger.error("Valores NaN detectados en parámetros de entrada");
+            throw new IllegalArgumentException("Los valores no pueden ser NaN");
+        }
 
-    double price;
-    try {
-        price = mlPredictionPort.predict(distance_km, duration_min);
-        logger.info("Predicción realizada correctamente: precio estimado={}", price);
-        logger.debug("Detalles internos ML -> distancia={}, duración={}, precio={}",
-                distance_km, duration_min, price);
+        if (Double.isInfinite(distance_km) || Double.isInfinite(duration_min)) {
+            logger.error("Valores infinitos detectados en parámetros de entrada");
+            throw new IllegalArgumentException("Los valores no pueden ser infinitos");
+        }
 
-    } catch (Exception e) {
-        logger.error("Error en el servicio de ML al predecir precio", e);
-        throw new PredictionServiceUnavailableException(
-                "No se pudo obtener la predicción del servicio ML", e);
-    }
+        // ================= VALIDACIÓN DE NEGOCIO =================
 
-    Trip trip = new Trip(distance_km, duration_min, price);
+        if (distance_km <= 0) {
+            logger.warn("Distancia inválida recibida: {}", distance_km);
+            throw new IllegalArgumentException("La distancia debe ser mayor que cero");
+        }
 
-    logger.debug("Objeto Trip creado (antes de persistir): {}", trip);
+        if (duration_min <= 0) {
+            logger.warn("Duración inválida recibida: {}", duration_min);
+            throw new IllegalArgumentException("La duración debe ser mayor que cero");
+        }
 
-    try {
-        Trip savedTrip = tripRepositoryPort.save(trip);
-        logger.info("Viaje guardado correctamente con ID={}", savedTrip.getId());
-        logger.debug("Trip persistido completamente: {}", savedTrip);
-        return savedTrip;
+        if (distance_km > 1000) {
+            logger.warn("Distancia extremadamente alta detectada: {} km", distance_km);
+        }
 
-    } catch (Exception e) {
-        logger.error("Error al persistir el viaje en la base de datos", e);
-        throw new PredictionServiceUnavailableException(
-                "No se pudo guardar el viaje en la base de datos", e);
+        if (duration_min > 1440) {
+            logger.warn("Duración extremadamente alta detectada: {} minutos", duration_min);
+        }
+
+        // Validación básica de coherencia (ejemplo: 1 km en 5 horas no tiene sentido)
+        double avgSpeed = distance_km / (duration_min / 60.0);
+        if (avgSpeed < 1 || avgSpeed > 300) {
+            logger.warn("Velocidad media sospechosa detectada: {} km/h", avgSpeed);
+        }
+
+        // ================= LLAMADA AL SERVICIO ML =================
+
+        double price;
+
+        try {
+            price = mlPredictionPort.predict(distance_km, duration_min);
+
+            logger.debug("Respuesta ML recibida -> precio={}", price);
+
+        } catch (PredictionServiceUnavailableException e) {
+            logger.error("Servicio ML no disponible", e);
+            throw e;
+        } catch (Exception e) {
+            logger.error("Error inesperado durante la predicción ML", e);
+            throw new PredictionServiceUnavailableException(
+                    "Error inesperado en el servicio ML", e);
+        }
+
+        // ================= VALIDACIÓN DEL PRECIO =================
+
+        if (Double.isNaN(price) || Double.isInfinite(price)) {
+            logger.error("Precio inválido recibido del ML: {}", price);
+            throw new PredictionServiceUnavailableException(
+                    "El servicio ML devolvió un precio inválido");
+        }
+
+        if (price < 0) {
+            logger.error("Precio negativo recibido del ML: {}", price);
+            throw new PredictionServiceUnavailableException(
+                    "El servicio ML devolvió un precio negativo");
+        }
+
+        if (price > 10000) {
+            logger.warn("Precio extremadamente alto detectado: {}", price);
+        }
+
+        logger.info("Predicción completada correctamente -> precio estimado={}", price);
+
+        // ================= CREACIÓN DEL DOMINIO =================
+
+        Trip trip = new Trip(distance_km, duration_min, price);
+
+        logger.debug("Objeto Trip creado antes de persistencia: {}", trip);
+
+        // ================= PERSISTENCIA =================
+
+        try {
+            Trip savedTrip = tripRepositoryPort.save(trip);
+
+            if (savedTrip == null || savedTrip.getId() == null) {
+                logger.error("Persistencia devolvió resultado inválido");
+                throw new RuntimeException("Error interno al guardar el viaje");
+            }
+
+            logger.info("Viaje persistido correctamente con ID={}", savedTrip.getId());
+            logger.debug("Trip final persistido: {}", savedTrip);
+
+            return savedTrip;
+
+        } catch (Exception e) {
+            logger.error("Error al persistir el viaje en base de datos", e);
+            throw new RuntimeException("Error al guardar el viaje en la base de datos", e);
+        }
     }
 }
-    }
