@@ -15,6 +15,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+import java.math.BigDecimal;
+
 import com.jorge.taxi.application.model.TripFeatures;
 
 @WebMvcTest(controllers = PredictionController.class)
@@ -41,7 +44,7 @@ class PredictionControllerTest {
         Trip trip = new Trip();
         trip.setDistance_km(20.0);
         trip.setDuration_min(10.0);
-        trip.setEstimated_price(50.0);
+        trip.setEstimated_price(new BigDecimal(50.0));
 
         // CORREGIDO: usamos any(TripFeatures.class)
         when(predictTripPriceUseCase.execute(any(TripFeatures.class))).thenReturn(trip);

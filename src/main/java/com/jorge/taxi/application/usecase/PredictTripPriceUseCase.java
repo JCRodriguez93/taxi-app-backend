@@ -1,5 +1,7 @@
 package com.jorge.taxi.application.usecase;
 
+import java.math.BigDecimal;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -111,7 +113,7 @@ public class PredictTripPriceUseCase {
         }
 
         // ================= LLAMADA AL SERVICIO ML =================
-        double price;
+        BigDecimal price;
         try {
             price = mlPredictionPort.predict(features);
             logger.debug("Respuesta ML recibida -> precio={}", price);
@@ -124,22 +126,32 @@ public class PredictTripPriceUseCase {
                     "Error inesperado en el servicio ML", e);
         }
 
-        // ================= VALIDACIÓN DEL PRECIO =================
-        if (Double.isNaN(price) || Double.isInfinite(price)) {
-            logger.error("Precio inválido recibido del ML: {}", price);
-            throw new PredictionServiceUnavailableException(
-                    "El servicio ML devolvió un precio inválido");
-        }
+     // ================= VALIDACIÓN DEL PRECIO =================
 
-        if (price < 0) {
-            logger.error("Precio negativo recibido del ML: {}", price);
-            throw new PredictionServiceUnavailableException(
-                    "El servicio ML devolvió un precio negativo");
-        }
+     // 1. Comprobar null
+     if (price == null) {
+         logger.error("Precio nulo recibido del ML");
+         throw new PredictionServiceUnavailableException(
+                 "El servicio ML devolvió un precio inválido");
+     }
 
-        if (price > 10000) {
-            logger.warn("Precio extremadamente alto detectado: {}", price);
-        }
+     // 2. Comprobar si es negativo
+     if (price.compareTo(BigDecimal.ZERO) < 0) {
+         logger.error("Precio negativo recibido del ML: {}", price);
+         throw new PredictionServiceUnavailableException(
+                 "El servicio ML devolvió un precio negativo");
+     }
+
+     // 3. Comprobar si es extremadamente alto
+     if (price.compareTo(new BigDecimal("10000")) > 0) {
+         logger.warn("Precio extremadamente alto detectado: {}", price);
+     }
+     
+     if (price.scale() > 2) {
+    	    logger.error("Precio con demasiados decimales: {}", price);
+    	    throw new PredictionServiceUnavailableException(
+    	            "El servicio ML devolvió un precio con demasiados decimales");
+    	}
 
         logger.info("Predicción completada correctamente -> precio estimado={}", price);
 

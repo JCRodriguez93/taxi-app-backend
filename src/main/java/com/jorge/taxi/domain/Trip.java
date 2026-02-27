@@ -1,6 +1,8 @@
 package com.jorge.taxi.domain;
 
 import jakarta.persistence.*;
+
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
@@ -49,7 +51,7 @@ public class Trip {
 
     /** Precio estimado calculado del viaje, siempre positivo. */
     @Column(nullable = false)
-    private double estimated_price;
+    private BigDecimal estimated_price;
 
     /** Fecha y hora de creación del viaje, asignada automáticamente. */
     @Column(nullable = false, updatable = false)
@@ -65,7 +67,7 @@ public class Trip {
      * @param duration_min duración del viaje en minutos
      * @param estimated_price precio estimado calculado del viaje
      */
-    public Trip(double distance_km, double duration_min, double estimated_price) {
+    public Trip(double distance_km, double duration_min, BigDecimal estimated_price) {
         this.distance_km = distance_km;
         this.duration_min = duration_min;
         this.estimated_price = estimated_price;
@@ -84,14 +86,15 @@ public class Trip {
     public Long getId() { return id; }
     public double getDistance_km() { return distance_km; }
     public double getDuration_min() { return duration_min; }
-    public double getEstimated_price() { return estimated_price; }
+    public BigDecimal getEstimated_price() { return estimated_price; }
     public LocalDateTime getCreated_at() { return created_at; }
 
     // ==================== SETTERS ====================
 
     public void setDistance_km(double distance_km) { this.distance_km = distance_km; }
     public void setDuration_min(double duration_min) { this.duration_min = duration_min; }
-    public void setEstimated_price(double estimated_price) { this.estimated_price = estimated_price; }
+    public void setEstimated_price(BigDecimal estimated_price) { this.estimated_price = estimated_price; }
+
 
     // ==================== HASHCODE ====================
 
@@ -100,8 +103,8 @@ public class Trip {
 		return Objects.hash(created_at, distance_km, duration_min, estimated_price, id);
 	}
 
-    // ==================== EQUALS ====================
-
+	 // ==================== EQUALS ====================
+	
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
@@ -114,17 +117,16 @@ public class Trip {
 		return Objects.equals(created_at, other.created_at)
 				&& Double.doubleToLongBits(distance_km) == Double.doubleToLongBits(other.distance_km)
 				&& Double.doubleToLongBits(duration_min) == Double.doubleToLongBits(other.duration_min)
-				&& Double.doubleToLongBits(estimated_price) == Double.doubleToLongBits(other.estimated_price)
-				&& Objects.equals(id, other.id);
-	}
-	
-    // ==================== TOSTRING ====================
-
-	@Override
-	public String toString() {
-		return "Trip [id=" + id + ", distance_km=" + distance_km + ", duration_min=" + duration_min
-				+ ", estimated_price=" + estimated_price + ", created_at=" + created_at + "]";
+				&& Objects.equals(estimated_price, other.estimated_price) && Objects.equals(id, other.id);
 	}
   
+	
+	// ==================== TOSTRING ====================
+
+		@Override
+		public String toString() {
+			return "Trip [id=" + id + ", distance_km=" + distance_km + ", duration_min=" + duration_min
+					+ ", estimated_price=" + estimated_price + ", created_at=" + created_at + "]";
+		}
     
 }

@@ -15,6 +15,7 @@ import org.mockito.MockitoAnnotations;
 
 import static org.mockito.Mockito.*;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -133,8 +134,9 @@ class PredictTripPriceUseCaseTest {
         features.setDistance_km(1);
         features.setDuration_min(300);
 
+        // El mock ahora devuelve BigDecimal
         when(mlPredictionPort.predict(any(TripFeatures.class)))
-                .thenReturn(10.0);
+                .thenReturn(new BigDecimal("10.0"));
 
         when(tripRepositoryPort.save(any())).thenAnswer(invocation -> {
             Trip original = invocation.getArgument(0);
@@ -145,7 +147,8 @@ class PredictTripPriceUseCaseTest {
 
         Trip trip = useCase.execute(features);
 
-        assertEquals(10.0, trip.getEstimated_price());
+        // Comparación correcta con BigDecimal
+        assertEquals(new BigDecimal("10.0"), trip.getEstimated_price());
         assertEquals(1L, trip.getId());
     }
 
@@ -190,28 +193,43 @@ class PredictTripPriceUseCaseTest {
     // ============================================================
 
     @Test
-    @DisplayName("Debe fallar si ML devuelve NaN")
-    void shouldFailWhenMLReturnsNaN() {
+    @DisplayName("Debe fallar si ML devuelve un precio con demasiados decimales")
+    void shouldFailWhenMLReturnsTooManyDecimals() {
         TripFeatures features = new TripFeatures();
         features.setDistance_km(10);
         features.setDuration_min(10);
 
         when(mlPredictionPort.predict(any(TripFeatures.class)))
-                .thenReturn(Double.NaN);
+                .thenReturn(new BigDecimal("10.123")); // escala = 3
+
+        assertThrows(PredictionServiceUnavailableException.class,
+                () -> useCase.execute(features));
+    }    
+    @Test
+    @DisplayName("Debe fallar si ML devuelve un valor inválido (simulación de NaN)")
+    void shouldFailWhenMLReturnsInvalidValue() {
+        TripFeatures features = new TripFeatures();
+        features.setDistance_km(10);
+        features.setDuration_min(10);
+
+        // BigDecimal no puede ser NaN → simulamos valor inválido devolviendo null
+        when(mlPredictionPort.predict(any(TripFeatures.class)))
+                .thenReturn(null);
 
         assertThrows(PredictionServiceUnavailableException.class,
                 () -> useCase.execute(features));
     }
 
     @Test
-    @DisplayName("Debe fallar si ML devuelve infinito")
+    @DisplayName("Debe fallar si ML devuelve un valor inválido (simulación de infinito)")
     void shouldFailWhenMLReturnsInfinite() {
         TripFeatures features = new TripFeatures();
         features.setDistance_km(10);
         features.setDuration_min(10);
 
+        // BigDecimal no puede ser infinito → simulamos valor inválido devolviendo null
         when(mlPredictionPort.predict(any(TripFeatures.class)))
-                .thenReturn(Double.POSITIVE_INFINITY);
+                .thenReturn(null);
 
         assertThrows(PredictionServiceUnavailableException.class,
                 () -> useCase.execute(features));
@@ -224,8 +242,9 @@ class PredictTripPriceUseCaseTest {
         features.setDistance_km(10);
         features.setDuration_min(10);
 
+        // BigDecimal negativo
         when(mlPredictionPort.predict(any(TripFeatures.class)))
-                .thenReturn(-5.0);
+                .thenReturn(new BigDecimal("-5.0"));
 
         assertThrows(PredictionServiceUnavailableException.class,
                 () -> useCase.execute(features));
@@ -242,9 +261,11 @@ class PredictTripPriceUseCaseTest {
         features.setDistance_km(10);
         features.setDuration_min(10);
 
+        // ML devuelve BigDecimal válido
         when(mlPredictionPort.predict(any(TripFeatures.class)))
-                .thenReturn(20.0);
+                .thenReturn(new BigDecimal("20.0"));
 
+        // El repositorio devuelve null → error
         when(tripRepositoryPort.save(any())).thenReturn(null);
 
         assertThrows(RuntimeException.class,
@@ -258,11 +279,13 @@ class PredictTripPriceUseCaseTest {
         features.setDistance_km(10);
         features.setDuration_min(10);
 
+        // ML devuelve BigDecimal válido
         when(mlPredictionPort.predict(any(TripFeatures.class)))
-                .thenReturn(20.0);
+                .thenReturn(new BigDecimal("20.0"));
 
+        // El repositorio devuelve un Trip sin ID
         when(tripRepositoryPort.save(any()))
-                .thenReturn(new Trip(10, 10, 20));
+                .thenReturn(new Trip(10, 10, new BigDecimal("20.0")));
 
         assertThrows(RuntimeException.class,
                 () -> useCase.execute(features));
@@ -275,9 +298,11 @@ class PredictTripPriceUseCaseTest {
         features.setDistance_km(10);
         features.setDuration_min(10);
 
+        // ML devuelve BigDecimal válido
         when(mlPredictionPort.predict(any(TripFeatures.class)))
-                .thenReturn(20.0);
+                .thenReturn(new BigDecimal("20.0"));
 
+        // El repositorio lanza excepción
         when(tripRepositoryPort.save(any()))
                 .thenThrow(new RuntimeException("DB error"));
 
@@ -297,7 +322,7 @@ class PredictTripPriceUseCaseTest {
         features.setDuration_min(60);
 
         when(mlPredictionPort.predict(any(TripFeatures.class)))
-                .thenReturn(100.0);
+                .thenReturn(new BigDecimal("100.00"));
 
         when(tripRepositoryPort.save(any())).thenAnswer(invocation -> {
             Trip original = invocation.getArgument(0);
@@ -308,7 +333,7 @@ class PredictTripPriceUseCaseTest {
 
         Trip trip = useCase.execute(features);
 
-        assertEquals(100.0, trip.getEstimated_price());
+        assertEquals(new BigDecimal("100.00"), trip.getEstimated_price());
         assertEquals(1L, trip.getId());
     }
 
@@ -320,7 +345,7 @@ class PredictTripPriceUseCaseTest {
         features.setDuration_min(10);
 
         when(mlPredictionPort.predict(any(TripFeatures.class)))
-                .thenReturn(15000.0);
+                .thenReturn(new BigDecimal("15000.00"));
 
         when(tripRepositoryPort.save(any())).thenAnswer(invocation -> {
             Trip original = invocation.getArgument(0);
@@ -331,7 +356,7 @@ class PredictTripPriceUseCaseTest {
 
         Trip trip = useCase.execute(features);
 
-        assertEquals(15000.0, trip.getEstimated_price());
+        assertEquals(new BigDecimal("15000.00"), trip.getEstimated_price());
         assertEquals(1L, trip.getId());
     }
 
@@ -343,7 +368,7 @@ class PredictTripPriceUseCaseTest {
         features.setDuration_min(2000);
 
         when(mlPredictionPort.predict(any(TripFeatures.class)))
-                .thenReturn(50.0);
+                .thenReturn(new BigDecimal("50.00"));
 
         when(tripRepositoryPort.save(any())).thenAnswer(invocation -> {
             Trip original = invocation.getArgument(0);
@@ -354,7 +379,7 @@ class PredictTripPriceUseCaseTest {
 
         Trip trip = useCase.execute(features);
 
-        assertEquals(50.0, trip.getEstimated_price());
+        assertEquals(new BigDecimal("50.00"), trip.getEstimated_price());
         assertEquals(1L, trip.getId());
     }
 
@@ -370,7 +395,7 @@ class PredictTripPriceUseCaseTest {
         features.setDuration_min(10);
 
         when(mlPredictionPort.predict(any(TripFeatures.class)))
-                .thenReturn(20.0);
+                .thenReturn(new BigDecimal("20.00"));
 
         when(tripRepositoryPort.save(any())).thenAnswer(invocation -> {
             Trip original = invocation.getArgument(0);
@@ -381,7 +406,7 @@ class PredictTripPriceUseCaseTest {
 
         Trip trip = useCase.execute(features);
 
-        assertEquals(20.0, trip.getEstimated_price());
+        assertEquals(new BigDecimal("20.00"), trip.getEstimated_price());
         assertEquals(1L, trip.getId());
     }
     
@@ -396,7 +421,7 @@ class PredictTripPriceUseCaseTest {
         ExecutorService executor = Executors.newFixedThreadPool(threads);
 
         // Mock de ML y repositorio
-        when(mlPredictionPort.predict(any(TripFeatures.class))).thenReturn(20.0);
+        when(mlPredictionPort.predict(any(TripFeatures.class))).thenReturn(new BigDecimal("20.00"));
         when(tripRepositoryPort.save(any())).thenAnswer(invocation -> {
             Trip original = invocation.getArgument(0);
             Trip saved = spy(original);
@@ -421,7 +446,7 @@ class PredictTripPriceUseCaseTest {
         // Comprobamos que cada Trip es correcto
         for (Future<Trip> future : results) {
             Trip trip = future.get();
-            assertEquals(20.0, trip.getEstimated_price());
+            assertEquals(new BigDecimal("20.00"), trip.getEstimated_price());
             assertNotNull(trip.getId());
         }
 

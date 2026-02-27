@@ -1,5 +1,7 @@
 package com.jorge.taxi.application.port.out;
 
+import java.math.BigDecimal;
+
 import com.jorge.taxi.application.model.TripFeatures;
 
 /**
@@ -42,5 +44,5 @@ public interface MlPredictionPort {
      * @throws com.jorge.taxi.application.exception.PredictionServiceUnavailableException
      *         si el servicio de predicción no está disponible
      */
-    double predict(TripFeatures features);
+    BigDecimal predict(TripFeatures features);
 }
