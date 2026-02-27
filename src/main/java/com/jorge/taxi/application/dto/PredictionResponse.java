@@ -1,5 +1,7 @@
 package com.jorge.taxi.application.dto;
 
+import java.math.BigDecimal;
+
 /**
  * DTO que representa la respuesta de la predicción de un viaje.
  * Contiene únicamente el precio estimado calculado por el servicio de ML.
@@ -16,7 +18,7 @@ package com.jorge.taxi.application.dto;
  * </pre>
  *
  * @author Jorge Campos Rodríguez
- * @version 1.0.0
+ * @version 1.0.1
  * @see com.jorge.taxi.domain.Trip
  */
 public class PredictionResponse {
@@ -24,14 +26,14 @@ public class PredictionResponse {
     /**
      * Precio estimado del viaje, calculado por el servicio de predicción.
      */
-    private double estimated_price;
+    private BigDecimal estimated_price;
 
     /**
      * Obtiene el precio estimado del viaje.
      *
      * @return el precio estimado
      */
-    public double getEstimated_price() {
+    public BigDecimal getEstimated_price() {
         return estimated_price;
     }
 
@@ -40,7 +42,7 @@ public class PredictionResponse {
      *
      * @param estimated_price el precio estimado a asignar
      */
-    public void setEstimated_price(double estimated_price) {
+    public void setEstimated_price(BigDecimal estimated_price) {
         this.estimated_price = estimated_price;
     }
 }

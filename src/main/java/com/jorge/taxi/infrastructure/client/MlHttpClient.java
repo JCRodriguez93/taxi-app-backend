@@ -1,5 +1,7 @@
 package com.jorge.taxi.infrastructure.client;
 
+import java.math.BigDecimal;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatusCode;
@@ -30,7 +32,7 @@ import com.jorge.taxi.application.dto.TripRequest;
  * </ul>
  *
  * @author Jorge Campos Rodríguez
- * @version 1.0.3
+ * @version 1.0.4
  */
 @Component
 public class MlHttpClient implements MlPredictionPort {
@@ -56,7 +58,7 @@ public class MlHttpClient implements MlPredictionPort {
      *         o si la respuesta es inválida
      */
     @Override
-    public double predict(TripFeatures features) {
+    public BigDecimal predict(TripFeatures features) {
 
         long startTime = System.currentTimeMillis();
 
@@ -88,9 +90,9 @@ public class MlHttpClient implements MlPredictionPort {
 
             logger.debug("ML raw response -> {}", response);
 
-            Double price = response.getEstimated_price();
+            BigDecimal price = response.getEstimated_price();
 
-            if (price == null || price.isNaN() || price.isInfinite() || price < 0) {
+            if (price == null || price.compareTo(BigDecimal.ZERO) < 0) {
                 logger.warn("Invalid ML price received: {} ({} ms)", price, duration);
                 throw new PredictionServiceUnavailableException(
                         "ML service returned invalid price value");

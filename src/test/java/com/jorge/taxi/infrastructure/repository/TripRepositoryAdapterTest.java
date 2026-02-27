@@ -9,6 +9,9 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import static org.mockito.Mockito.*;
+
+import java.math.BigDecimal;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -39,18 +42,18 @@ class TripRepositoryAdapterTest {
     @DisplayName("Debería guardar un Trip usando el repositorio Spring Data")
     void save_shouldDelegateToSpringDataRepository() {
 
-        Trip trip = new Trip(10.0, 15.0, 25.0);
+        Trip trip = new Trip(10.0, 15.0, new BigDecimal("25.00"));
 
         Trip savedTrip = mock(Trip.class);
         when(savedTrip.getId()).thenReturn(1L);
-        when(savedTrip.getEstimated_price()).thenReturn(25.0);
+        when(savedTrip.getEstimated_price()).thenReturn(new BigDecimal("25.00"));
 
         when(springDataTripRepository.save(trip)).thenReturn(savedTrip);
 
         Trip result = adapter.save(trip);
 
         assertEquals(1L, result.getId());
-        assertEquals(25.0, result.getEstimated_price());
+        assertEquals(new BigDecimal("25.00"), result.getEstimated_price());
         verify(springDataTripRepository, times(1)).save(trip);
     }
 
@@ -62,7 +65,7 @@ class TripRepositoryAdapterTest {
     @DisplayName("Debería relanzar la excepción si el repositorio falla")
     void save_whenRepositoryFails_shouldPropagateException() {
 
-        Trip trip = new Trip(10.0, 15.0, 25.0);
+        Trip trip = new Trip(10.0, 15.0, new BigDecimal ("25.00"));
 
         when(springDataTripRepository.save(trip))
                 .thenThrow(new RuntimeException("DB error"));

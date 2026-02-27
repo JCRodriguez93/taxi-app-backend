@@ -4,6 +4,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -20,16 +21,20 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class TripTest {
 
-    @Test
-    @DisplayName("Debería crear un Trip usando constructor con parámetros y getters")
-    void constructorAndGetters() {
-        Trip trip = new Trip(10.0, 15.0, 25.0);
+	@Test
+	@DisplayName("Debería crear un Trip usando constructor con parámetros y getters")
+	void constructorAndGetters() {
+	    Trip trip = new Trip(
+	            10.0,
+	            15.0,
+	            new BigDecimal("25.0")
+	    );
 
-        assertEquals(10.0, trip.getDistance_km());
-        assertEquals(15.0, trip.getDuration_min());
-        assertEquals(25.0, trip.getEstimated_price());
-        assertNotNull(trip.getCreated_at());
-    }
+	    assertEquals(10.0, trip.getDistance_km());
+	    assertEquals(15.0, trip.getDuration_min());
+	    assertEquals(new BigDecimal("25.0"), trip.getEstimated_price());
+	    assertNotNull(trip.getCreated_at());
+	}
 
     @Test
     @DisplayName("Debería setear propiedades usando setters")
@@ -38,11 +43,11 @@ class TripTest {
 
         trip.setDistance_km(12.0);
         trip.setDuration_min(18.0);
-        trip.setEstimated_price(30.0);
+        trip.setEstimated_price(new BigDecimal("30.00"));
 
         assertEquals(12.0, trip.getDistance_km());
         assertEquals(18.0, trip.getDuration_min());
-        assertEquals(30.0, trip.getEstimated_price());
+        assertEquals(new BigDecimal("30.00"), trip.getEstimated_price());
     }
 
     @Test
@@ -59,8 +64,8 @@ class TripTest {
     @Test
     @DisplayName("equals() debería considerar iguales dos Trips con mismos valores (incluyendo created_at)")
     void equals_shouldReturnTrueForEqualTrips() throws Exception {
-        Trip t1 = new Trip(10.0, 20.0, 30.0);
-        Trip t2 = new Trip(10.0, 20.0, 30.0);
+        Trip t1 = new Trip(10.0, 20.0, new BigDecimal(30.0));
+        Trip t2 = new Trip(10.0, 20.0, new BigDecimal(30.0));
 
         LocalDateTime now = LocalDateTime.now().withNano(0);
         setCreatedAt(t1, now);
@@ -73,8 +78,8 @@ class TripTest {
     @Test
     @DisplayName("equals() debería devolver false para Trips distintos")
     void equals_shouldReturnFalseForDifferentTrips() {
-        Trip t1 = new Trip(10.0, 20.0, 30.0);
-        Trip t2 = new Trip(99.0, 20.0, 30.0);
+        Trip t1 = new Trip(10.0, 20.0, new BigDecimal(30.0));
+        Trip t2 = new Trip(99.0, 20.0, new BigDecimal(30.0));
 
         t1.onCreate();
         t2.onCreate();
@@ -85,7 +90,7 @@ class TripTest {
     @Test
     @DisplayName("equals() debería devolver false al comparar con null o con otra clase")
     void equals_shouldHandleNullAndDifferentClass() {
-        Trip trip = new Trip(10.0, 20.0, 30.0);
+        Trip trip = new Trip(10.0, 20.0, new BigDecimal(30.0));
         trip.onCreate();
 
         assertNotEquals(trip, null);
@@ -95,7 +100,7 @@ class TripTest {
     @Test
     @DisplayName("equals() debería devolver true cuando se compara el objeto consigo mismo")
     void equals_shouldReturnTrueWhenComparingSameInstance() {
-        Trip trip = new Trip(10.0, 20.0, 30.0);
+        Trip trip = new Trip(10.0, 20.0, new BigDecimal(30.0));
         trip.onCreate();
 
         assertTrue(trip.equals(trip));
@@ -104,8 +109,8 @@ class TripTest {
     @Test
     @DisplayName("hashCode() debería ser consistente con equals()")
     void hashCode_shouldBeConsistentWithEquals() throws Exception {
-        Trip t1 = new Trip(5.0, 10.0, 15.0);
-        Trip t2 = new Trip(5.0, 10.0, 15.0);
+        Trip t1 = new Trip(5.0, 10.0, new BigDecimal(15.0));
+        Trip t2 = new Trip(5.0, 10.0, new BigDecimal(15.0));
 
         LocalDateTime now = LocalDateTime.now().withNano(0);
         setCreatedAt(t1, now);
@@ -118,7 +123,7 @@ class TripTest {
     @Test
     @DisplayName("toString() debería contener información relevante del Trip")
     void toString_shouldContainFields() {
-        Trip trip = new Trip(10.0, 20.0, 30.0);
+        Trip trip = new Trip(10.0, 20.0, new BigDecimal (30.0));
         trip.onCreate();
 
         String str = trip.toString();

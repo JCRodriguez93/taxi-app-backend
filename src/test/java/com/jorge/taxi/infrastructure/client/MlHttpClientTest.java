@@ -17,6 +17,7 @@ import org.springframework.web.client.RestTemplate;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -49,14 +50,15 @@ class MlHttpClientTest {
     @DisplayName("Debería devolver el precio estimado correctamente")
     void predict_shouldReturnCorrectPrice() {
         PredictionResponse response = new PredictionResponse();
-        response.setEstimated_price(25.0);
+        response.setEstimated_price(new BigDecimal("25.00"));
 
         when(restTemplate.postForObject(anyString(), any(), eq(PredictionResponse.class)))
                 .thenReturn(response);
 
-        double price = mlHttpClient.predict(new TripFeatures(10.0, 15.0));
+        BigDecimal price = mlHttpClient.predict(new TripFeatures(10.0, 15.0));
 
-        assertEquals(25.0, price);
+        assertEquals(new BigDecimal("25.00"), price);
+
         verify(restTemplate, times(1))
                 .postForObject(anyString(), any(), eq(PredictionResponse.class));
     }
@@ -80,10 +82,10 @@ class MlHttpClientTest {
     }
 
     @Test
-    @DisplayName("Debería lanzar excepción si el precio es NaN")
+    @DisplayName("Debería lanzar excepción si el precio es inválido (simulación de NaN)")
     void predict_whenPriceIsNaN_shouldThrowException() {
         PredictionResponse response = new PredictionResponse();
-        response.setEstimated_price(Double.NaN);
+        response.setEstimated_price(null); // BigDecimal no puede ser NaN
 
         when(restTemplate.postForObject(anyString(), any(), eq(PredictionResponse.class)))
                 .thenReturn(response);
@@ -91,12 +93,12 @@ class MlHttpClientTest {
         assertThrows(PredictionServiceUnavailableException.class,
                 () -> mlHttpClient.predict(new TripFeatures(10.0, 15.0)));
     }
-
+    
     @Test
-    @DisplayName("Debería lanzar excepción si el precio es infinito")
+    @DisplayName("Debería lanzar excepción si el precio es inválido (simulación de infinito)")
     void predict_whenPriceIsInfinite_shouldThrowException() {
         PredictionResponse response = new PredictionResponse();
-        response.setEstimated_price(Double.POSITIVE_INFINITY);
+        response.setEstimated_price(null); // BigDecimal no puede ser infinito
 
         when(restTemplate.postForObject(anyString(), any(), eq(PredictionResponse.class)))
                 .thenReturn(response);
@@ -109,7 +111,7 @@ class MlHttpClientTest {
     @DisplayName("Debería lanzar excepción si el precio es negativo")
     void predict_whenPriceIsNegative_shouldThrowException() {
         PredictionResponse response = new PredictionResponse();
-        response.setEstimated_price(-5.0);
+        response.setEstimated_price(new BigDecimal(-5.0));
 
         when(restTemplate.postForObject(anyString(), any(), eq(PredictionResponse.class)))
                 .thenReturn(response);
@@ -186,7 +188,7 @@ class MlHttpClientTest {
     void predict_shouldHandleConcurrentCalls() throws Exception {
         // Preparar respuesta simulada
         PredictionResponse response = new PredictionResponse();
-        response.setEstimated_price(30.0);
+        response.setEstimated_price(new BigDecimal("30.0"));
 
         when(restTemplate.postForObject(anyString(), any(), eq(PredictionResponse.class)))
                 .thenReturn(response);
@@ -194,10 +196,10 @@ class MlHttpClientTest {
         // Ejecutar 20 llamadas concurrentes
         int concurrentCalls = 20;
         ExecutorService executor = Executors.newFixedThreadPool(concurrentCalls);
-        List<CompletableFuture<Double>> futures = new ArrayList<>();
+        List<CompletableFuture<BigDecimal>> futures = new ArrayList<>();
 
         for (int i = 0; i < concurrentCalls; i++) {
-            CompletableFuture<Double> future = CompletableFuture.supplyAsync(() -> {
+            CompletableFuture<BigDecimal> future = CompletableFuture.supplyAsync(() -> {
                 try {
                     return mlHttpClient.predict(new TripFeatures(10.0, 15.0));
                 } catch (PredictionServiceUnavailableException e) {
@@ -210,8 +212,8 @@ class MlHttpClientTest {
         // Esperar resultados y validar
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
 
-        for (CompletableFuture<Double> future : futures) {
-            assertEquals(30.0, future.get());
+        for (CompletableFuture<BigDecimal> future : futures) {
+            assertEquals(new BigDecimal("30.0"), future.get());
         }
 
         executor.shutdown();
@@ -223,13 +225,12 @@ class MlHttpClientTest {
     }
     
     
-    
     @Test
     @DisplayName("Debería manejar concurrencia mixta con éxito y errores")
     void predict_shouldHandleMixedConcurrentCalls() throws Exception {
         int totalCalls = 50;
         ExecutorService executor = Executors.newFixedThreadPool(20);
-        List<CompletableFuture<Double>> futures = new ArrayList<>();
+        List<CompletableFuture<BigDecimal>> futures = new ArrayList<>();
 
         // Configurar comportamiento mixto: 70% normal, 30% excepción
         when(restTemplate.postForObject(anyString(), any(), eq(PredictionResponse.class)))
@@ -238,13 +239,13 @@ class MlHttpClientTest {
                         throw new RestClientException("Timeout simulado");
                     } else {
                         PredictionResponse response = new PredictionResponse();
-                        response.setEstimated_price(42.0);
+                        response.setEstimated_price(new BigDecimal("42.0"));
                         return response;
                     }
                 });
 
         for (int i = 0; i < totalCalls; i++) {
-            CompletableFuture<Double> future = CompletableFuture.supplyAsync(() -> {
+            CompletableFuture<BigDecimal> future = CompletableFuture.supplyAsync(() -> {
                 try {
                     return mlHttpClient.predict(new TripFeatures(5.0, 7.0));
                 } catch (PredictionServiceUnavailableException e) {
@@ -276,27 +277,32 @@ class MlHttpClientTest {
     
     
     
+    
     @Test
     @DisplayName("Debería manejar concurrencia extrema con todo tipo de respuestas")
     void predict_shouldHandleExtremeMixedConcurrentCalls() throws Exception {
         int totalCalls = 100;
         ExecutorService executor = Executors.newFixedThreadPool(50);
-        List<CompletableFuture<Double>> futures = new ArrayList<>();
+        List<CompletableFuture<BigDecimal>> futures = new ArrayList<>();
 
         when(restTemplate.postForObject(anyString(), any(), eq(PredictionResponse.class)))
-                .thenAnswer(invocation -> {
-                    double rnd = Math.random();
-                    PredictionResponse response = new PredictionResponse();
-                    if (rnd < 0.2) return null; // 20% null
-                    if (rnd < 0.4) { response.setEstimated_price(Double.NaN); return response; } // 20% NaN
-                    if (rnd < 0.6) { response.setEstimated_price(Double.POSITIVE_INFINITY); return response; } // 20% infinito
-                    if (rnd < 0.8) { response.setEstimated_price(-10.0); return response; } // 20% negativo
-                    if (rnd < 0.9) throw new ResourceAccessException("Timeout extremo"); // 10% timeout
-                    throw new RestClientException("Error de red aleatorio"); // 10% resto
-                });
+        .thenAnswer(invocation -> {
+            double rnd = Math.random();
+            PredictionResponse response = new PredictionResponse();
+
+            if (rnd < 0.2) return null; // 20% null
+            if (rnd < 0.4) { response.setEstimated_price(null); return response; } // 20% inválido
+            if (rnd < 0.6) { response.setEstimated_price(null); return response; } // 20% inválido
+            if (rnd < 0.8) { response.setEstimated_price(new BigDecimal("-10.0")); return response; } // 20% negativo
+            if (rnd < 0.9) throw new ResourceAccessException("Timeout extremo"); // 10% timeout
+
+            // 10% éxito real
+            response.setEstimated_price(new BigDecimal("42.00"));
+            return response;
+        });
 
         for (int i = 0; i < totalCalls; i++) {
-            CompletableFuture<Double> future = CompletableFuture.supplyAsync(() -> {
+            CompletableFuture<BigDecimal> future = CompletableFuture.supplyAsync(() -> {
                 try {
                     return mlHttpClient.predict(new TripFeatures(10.0, 20.0));
                 } catch (PredictionServiceUnavailableException e) {
@@ -314,7 +320,9 @@ class MlHttpClientTest {
 
         long failures = totalCalls - successes;
 
-        System.out.println("Extreme concurrent calls: " + totalCalls + ", successes: " + successes + ", failures: " + failures);
+        System.out.println("Extreme concurrent calls: " + totalCalls +
+                ", successes: " + successes +
+                ", failures: " + failures);
 
         assertTrue(successes > 0, "Debe haber al menos algunas llamadas exitosas");
         assertTrue(failures > 0, "Debe haber al menos algunas llamadas fallidas");
