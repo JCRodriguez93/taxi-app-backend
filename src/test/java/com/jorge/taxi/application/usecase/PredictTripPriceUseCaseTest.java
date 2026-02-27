@@ -14,6 +14,15 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import static org.mockito.Mockito.*;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class PredictTripPriceUseCaseTest {
@@ -374,5 +383,48 @@ class PredictTripPriceUseCaseTest {
 
         assertEquals(20.0, trip.getEstimated_price());
         assertEquals(1L, trip.getId());
+    }
+    
+    
+    /**
+     * concurrencia
+     */
+    @Test
+    @DisplayName("Debe manejar múltiples predicciones concurrentes sin fallar")
+    void shouldHandleConcurrentPredictions() throws Exception {
+        int threads = 10; // número de hilos concurrentes
+        ExecutorService executor = Executors.newFixedThreadPool(threads);
+
+        // Mock de ML y repositorio
+        when(mlPredictionPort.predict(any(TripFeatures.class))).thenReturn(20.0);
+        when(tripRepositoryPort.save(any())).thenAnswer(invocation -> {
+            Trip original = invocation.getArgument(0);
+            Trip saved = spy(original);
+            doReturn(new Random().nextLong()).when(saved).getId(); // ID único por Trip
+            return saved;
+        });
+
+        // Creamos tareas concurrentes
+        List<Callable<Trip>> tasks = new ArrayList<>();
+        for (int i = 0; i < threads; i++) {
+            tasks.add(() -> {
+                TripFeatures features = new TripFeatures();
+                features.setDistance_km(10.0);
+                features.setDuration_min(10.0);
+                return useCase.execute(features);
+            });
+        }
+
+        // Ejecutamos todas las tareas
+        List<Future<Trip>> results = executor.invokeAll(tasks);
+
+        // Comprobamos que cada Trip es correcto
+        for (Future<Trip> future : results) {
+            Trip trip = future.get();
+            assertEquals(20.0, trip.getEstimated_price());
+            assertNotNull(trip.getId());
+        }
+
+        executor.shutdown();
     }
 }
