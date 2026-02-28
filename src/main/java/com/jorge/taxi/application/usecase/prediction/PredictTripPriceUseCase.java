@@ -1,4 +1,4 @@
-package com.jorge.taxi.application.usecase;
+package com.jorge.taxi.application.usecase.prediction;
 
 import java.math.BigDecimal;
 

@@ -25,7 +25,7 @@ import jakarta.validation.constraints.*;
  *
  * @author Jorge Campos Rodríguez
  * @version 1.0.0
- * @see com.jorge.taxi.application.usecase.PredictTripPriceUseCase
+ * @see com.jorge.taxi.application.usecase.prediction.PredictTripPriceUseCase
  * @see com.jorge.taxi.infrastructure.controller.PredictionController
  */
 public class TripRequest {

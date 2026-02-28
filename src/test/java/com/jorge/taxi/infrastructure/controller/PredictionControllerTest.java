@@ -2,7 +2,6 @@ package com.jorge.taxi.infrastructure.controller;
 
 import com.jorge.taxi.application.dto.TripRequest;
 import com.jorge.taxi.application.exception.PredictionServiceUnavailableException;
-import com.jorge.taxi.application.usecase.PredictTripPriceUseCase;
 import com.jorge.taxi.domain.Trip;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
@@ -19,6 +18,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.math.BigDecimal;
 
 import com.jorge.taxi.application.model.TripFeatures;
+import com.jorge.taxi.application.usecase.prediction.PredictTripPriceUseCase;
 
 @WebMvcTest(controllers = PredictionController.class)
 class PredictionControllerTest {
