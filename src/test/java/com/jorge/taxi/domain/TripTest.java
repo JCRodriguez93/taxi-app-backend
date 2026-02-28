@@ -18,21 +18,33 @@ import static org.junit.jupiter.api.Assertions.*;
  * - Comportamiento de @PrePersist
  * - equals() y hashCode()
  * - toString()
+ * 
+ * @author Jorge Campos Rodríguez
+ * @version 1.0.3
  */
 class TripTest {
 
 	@Test
 	@DisplayName("Debería crear un Trip usando constructor con parámetros y getters")
 	void constructorAndGetters() {
-	    Trip trip = new Trip(
-	            10.0,
-	            15.0,
-	            new BigDecimal("25.0")
-	    );
+		Trip trip = new Trip(
+			    10.0,
+			    15.0,
+			    BigDecimal.valueOf(25).setScale(2),
+			    "Centro",
+			    "Aeropuerto",
+			    VehicleType.STANDARD,
+			    TripStatus.PENDING,
+			    LocalDateTime.now()
+			);
 
 	    assertEquals(10.0, trip.getDistance_km());
 	    assertEquals(15.0, trip.getDuration_min());
-	    assertEquals(new BigDecimal("25.0"), trip.getEstimated_price());
+	    assertEquals(new BigDecimal("25.00"), trip.getEstimated_price());
+	    assertEquals("Centro", trip.getOrigin_zone());
+	    assertEquals("Aeropuerto",trip.getDestination_zone());
+	    assertEquals(VehicleType.STANDARD, trip.getVehicle_type());
+	    assertEquals(TripStatus.PENDING, trip.getStatus());
 	    assertNotNull(trip.getCreated_at());
 	}
 
