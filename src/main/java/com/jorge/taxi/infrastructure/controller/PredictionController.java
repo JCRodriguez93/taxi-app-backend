@@ -4,7 +4,7 @@ import org.springframework.web.bind.annotation.*;
 
 import com.jorge.taxi.application.dto.TripRequest;
 import com.jorge.taxi.application.model.TripFeatures;
-import com.jorge.taxi.application.usecase.PredictTripPriceUseCase;
+import com.jorge.taxi.application.usecase.prediction.PredictTripPriceUseCase;
 import com.jorge.taxi.domain.Trip;
 import jakarta.validation.Valid;
 

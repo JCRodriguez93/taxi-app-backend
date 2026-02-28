@@ -31,7 +31,7 @@ import com.jorge.taxi.application.model.TripFeatures;
  *
  * @author Jorge Campos Rodríguez
  * @version 1.0.2
- * @see com.jorge.taxi.application.usecase.PredictTripPriceUseCase
+ * @see com.jorge.taxi.application.usecase.prediction.PredictTripPriceUseCase
  */
 public interface MlPredictionPort {
 

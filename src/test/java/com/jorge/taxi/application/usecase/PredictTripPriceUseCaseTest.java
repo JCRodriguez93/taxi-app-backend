@@ -4,6 +4,7 @@ import com.jorge.taxi.application.exception.PredictionServiceUnavailableExceptio
 import com.jorge.taxi.application.model.TripFeatures;
 import com.jorge.taxi.application.port.out.MlPredictionPort;
 import com.jorge.taxi.application.port.out.TripRepositoryPort;
+import com.jorge.taxi.application.usecase.prediction.PredictTripPriceUseCase;
 import com.jorge.taxi.domain.Trip;
 
 import org.junit.jupiter.api.BeforeEach;

@@ -1,11 +1,19 @@
 package com.jorge.taxi.infrastructure.controller;
 
 import com.jorge.taxi.domain.Trip;
-import com.jorge.taxi.application.service.TripService;
+import com.jorge.taxi.application.usecase.query.GetTripUseCase;
+import com.jorge.taxi.application.usecase.query.ListTripUseCase;
+import com.jorge.taxi.application.usecase.status.AcceptTripUseCase;
+import com.jorge.taxi.application.usecase.status.CancelTripUseCase;
+import com.jorge.taxi.application.usecase.status.CompleteTripUseCase;
+import com.jorge.taxi.application.usecase.status.StartTripUseCase;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Positive;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -41,43 +49,73 @@ import java.util.List;
 @RequestMapping("/trips")
 @Tag(name = "Trip Management", description = "Gestión y ciclo de vida de viajes")
 public class TripController {
+	
+    private final AcceptTripUseCase acceptTripUseCase;
+    private final CancelTripUseCase cancelTripUseCase;
+    private final CompleteTripUseCase completeTripUseCase;
+    private final StartTripUseCase startTripUseCase;
 
-    private final TripService tripService;
+    private final GetTripUseCase getTripUseCase;
+    private final ListTripUseCase listTripUseCase;
+    
 
-    public TripController(TripService tripService) {
-        this.tripService = tripService;
-    }
-
+    
+    public TripController(AcceptTripUseCase acceptTripUseCase, CancelTripUseCase cancelTripUseCase,
+			CompleteTripUseCase completeTripUseCase, StartTripUseCase startTripUseCase, GetTripUseCase getTripUseCase,
+			ListTripUseCase listTripUseCase) {
+		super();
+		this.acceptTripUseCase = acceptTripUseCase;
+		this.cancelTripUseCase = cancelTripUseCase;
+		this.completeTripUseCase = completeTripUseCase;
+		this.startTripUseCase = startTripUseCase;
+		this.getTripUseCase = getTripUseCase;
+		this.listTripUseCase = listTripUseCase;
+	}
+    
     /**
-     * Obtiene todos los viajes almacenados.
+     * Obtiene un viaje específico a partir de su identificador.
      *
-     * @return lista de viajes.
-     */
-    @GetMapping
-    public List<Trip> getAllTrips() {
-        return tripService.findAll();
-    }
-
-    /**
-     * Obtiene un viaje por su identificador.
+     * <p>Este endpoint delega la operación en {@code GetTripUseCase}, que contiene
+     * la lógica necesaria para recuperar un viaje desde la capa de dominio.</p>
      *
-     * @param id identificador del viaje.
-     * @return viaje encontrado.
+     * @param id identificador único del viaje que se desea consultar.
+     * @return la instancia de {@code Trip} correspondiente al ID proporcionado.
      */
-    @GetMapping("/{id}")
-    public Trip getTripById(@PathVariable @Positive Long id) {
-        return tripService.findById(id);
+    @GetMapping("/trips/{id}")
+    public Trip getTrip(@PathVariable Long id) {
+        return getTripUseCase.execute(id);
     }
 
     /**
+     * Recupera una página de viajes registrados en el sistema.
+     *
+     * <p>Este endpoint permite obtener los viajes de forma paginada mediante los
+     * parámetros {@code page} y {@code size}. La operación se delega en
+     * {@code ListTripUseCase}, que devuelve un objeto {@code Page<Trip>} con la
+     * información solicitada.</p>
+     *
+     * @param page número de página a recuperar (por defecto 0).
+     * @param size cantidad de elementos por página (por defecto 10).
+     * @return una página de {@code Trip} que incluye tanto los elementos como
+     *         los metadatos de paginación.
+     */
+    @GetMapping("/trips")
+    public Page<Trip> getAllTrips(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        return listTripUseCase.execute(page, size);
+    }
+
+	/**
      * Acepta un viaje en estado PENDING.
      *
      * @param id identificador del viaje.
      * @return viaje actualizado.
      */
-    @PatchMapping("/{id}/accept")
+    @PostMapping("/{id}/accept")
     public Trip acceptTrip(@PathVariable @Positive Long id) {
-        return tripService.acceptTrip(id);
+        return acceptTripUseCase.execute(id);
     }
 
     /**
@@ -86,9 +124,9 @@ public class TripController {
      * @param id identificador del viaje.
      * @return viaje actualizado.
      */
-    @PatchMapping("/{id}/start")
+    @PostMapping("/{id}/start")
     public Trip startTrip(@PathVariable @Positive Long id) {
-        return tripService.startTrip(id);
+        return startTripUseCase.execute(id);
     }
 
     /**
@@ -97,9 +135,9 @@ public class TripController {
      * @param id identificador del viaje.
      * @return viaje actualizado.
      */
-    @PatchMapping("/{id}/complete")
+    @PostMapping("/{id}/complete")
     public Trip completeTrip(@PathVariable @Positive Long id) {
-        return tripService.completeTrip(id);
+        return completeTripUseCase.execute(id);
     }
 
     /**
@@ -108,8 +146,8 @@ public class TripController {
      * @param id identificador del viaje.
      * @return viaje actualizado.
      */
-    @PatchMapping("/{id}/cancel")
+    @PostMapping("/{id}/cancel")
     public Trip cancelTrip(@PathVariable @Positive Long id) {
-        return tripService.cancelTrip(id);
+        return cancelTripUseCase.execute(id);
     }
 }
