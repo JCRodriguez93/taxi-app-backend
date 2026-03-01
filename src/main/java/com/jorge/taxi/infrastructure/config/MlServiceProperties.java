@@ -17,11 +17,11 @@ import org.springframework.stereotype.Component;
  * <p>Si no se define ninguna URL, se utilizará por defecto:
  * <code>http://localhost:8000/predict</code>.</p>
  * 
- * <p>Se utiliza en {@link com.jorge.taxi.infrastructure.adapter.out.ml.model.MlHttpClient}
+ * <p>Se utiliza en {@link com.jorge.taxi.infrastructure.adapter.out.ml.MlHttpClient}
  * para realizar las llamadas HTTP al servicio ML.</p>
  * 
  * @author Jorge Campos Rodríguez
- * @version 1.0.0
+ * @version 1.0.2
  */
 @Component
 @ConfigurationProperties(prefix = "ml.service")
@@ -32,10 +32,26 @@ public class MlServiceProperties {
      */
     private String url = "http://localhost:8000/predict"; // valor por defecto
 
+    
+    /**
+     * Constructor por defecto para ML.
+     */
+    public MlServiceProperties() {
+    }
+
+    
+    /**
+     * Devuelve la URL del microservicio de ML.
+     * @return url
+     */
     public String getUrl() {
         return url;
     }
 
+    /**
+     * Setea la URL del microservicio de ML.
+     * @param url microservicio de Machine Learning
+     */
     public void setUrl(String url) {
         this.url = url;
     }

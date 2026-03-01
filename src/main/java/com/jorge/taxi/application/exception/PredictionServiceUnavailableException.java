@@ -7,8 +7,8 @@ package com.jorge.taxi.application.exception;
  * Se utiliza para desacoplar la capa de aplicación
  * de los detalles de infraestructura.
  *
- * @author Jorge 
- * @version 1.0.1
+ * @author Jorge Campos Rodríguez
+ * @version 1.0.4
  * @see com.jorge.taxi.application.port.out.MlPredictionPort
  */
  

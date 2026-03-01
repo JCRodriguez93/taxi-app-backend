@@ -26,23 +26,23 @@ public class PredictionResponse {
     /**
      * Precio estimado del viaje, calculado por el servicio de predicción.
      */
-    private BigDecimal estimated_price;
+    private BigDecimal estimatedPrice;
 
     /**
      * Obtiene el precio estimado del viaje.
      *
      * @return el precio estimado
      */
-    public BigDecimal getEstimated_price() {
-        return estimated_price;
+    public BigDecimal getEstimatedPrice() {
+        return estimatedPrice;
     }
 
     /**
      * Establece el precio estimado del viaje.
      *
-     * @param estimated_price el precio estimado a asignar
+     * @param estimatedPrice el precio estimado a asignar
      */
-    public void setEstimated_price(BigDecimal estimated_price) {
-        this.estimated_price = estimated_price;
+    public void setEstimatePrice(BigDecimal estimatedPrice) {
+        this.estimatedPrice = estimatedPrice;
     }
 }

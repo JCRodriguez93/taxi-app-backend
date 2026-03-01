@@ -1,1 +1,1 @@
-typeSearchIndex = [{"l":"All Classes and Interfaces","u":"allclasses-index.html"},{"p":"com.jorge.taxi.application.usecase.prediction","l":"PredictTripPriceUseCase"}];updateSearchResults();
+typeSearchIndex = [{"l":"All Classes and Interfaces","u":"allclasses-index.html"},{"p":"com.jorge.taxi.infrastructure.config","l":"MlServiceProperties"}];updateSearchResults();

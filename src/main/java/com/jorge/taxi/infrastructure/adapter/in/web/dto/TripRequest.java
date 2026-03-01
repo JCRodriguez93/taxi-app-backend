@@ -41,92 +41,92 @@ public class TripRequest {
     @NotNull(message = "Distance is required")
     @Positive(message = "Distance must be greater than 0")
     @DecimalMax(value = "500", message = "Distance is too large")
-    private Double distance_km;
+    private Double distanceKm;
 
     @NotNull(message = "Duration is required")
     @Positive(message = "Duration must be greater than 0")
     @DecimalMax(value = "600", message = "Duration is too large")
-    private Double duration_min;
+    private Double durationMin;
 
     @NotBlank(message = "Origin zone is required")
     @Size(max = 50, message = "Origin zone is too long")
-    private String origin_zone;
+    private String originZone;
 
     @NotBlank(message = "Destination zone is required")
     @Size(max = 50, message = "Destination zone is too long")
-    private String destination_zone;
+    private String destinationZone;
 
     @NotBlank(message = "Vehicle type is required")
     @Size(max = 30, message = "Vehicle type is too long")
-    private String vehicle_type;
+    private String vehicleType;
 
     /**
      * @return distancia del viaje en kilómetros.
      */
-    public Double getDistance_km() {
-        return distance_km;
+    public Double getDistanceKm() {
+        return distanceKm;
     }
 
     /**
-     * @param distance_km distancia del viaje en kilómetros.
+     * @param distanceKm distancia del viaje en kilómetros.
      */
-    public void setDistance_km(Double distance_km) {
-        this.distance_km = distance_km;
+    public void setDistance_km(Double distanceKm) {
+        this.distanceKm = distanceKm;
     }
 
     /**
      * @return duración del viaje en minutos.
      */
-    public Double getDuration_min() {
-        return duration_min;
+    public Double getDurationMin() {
+        return durationMin;
     }
 
     /**
-     * @param duration_min duración del viaje en minutos.
+     * @param durationMin duración del viaje en minutos.
      */
-    public void setDuration_min(Double duration_min) {
-        this.duration_min = duration_min;
+    public void setDuration_min(Double durationMin) {
+        this.durationMin = durationMin;
     }
 
     /**
      * @return zona de origen del viaje.
      */
-    public String getOrigin_zone() {
-        return origin_zone;
+    public String getOriginZone() {
+        return originZone;
     }
 
     /**
-     * @param origin_zone zona de origen del viaje.
+     * @param originZone zona de origen del viaje.
      */
-    public void setOrigin_zone(String origin_zone) {
-        this.origin_zone = origin_zone;
+    public void setOriginZone(String originZone) {
+        this.originZone = originZone;
     }
 
     /**
      * @return zona de destino del viaje.
      */
-    public String getDestination_zone() {
-        return destination_zone;
+    public String getDestinationZone() {
+        return destinationZone;
     }
 
     /**
-     * @param destination_zone zona de destino del viaje.
+     * @param destinationZone zona de destino del viaje.
      */
-    public void setDestination_zone(String destination_zone) {
-        this.destination_zone = destination_zone;
+    public void setDestinationZone(String destinationZone) {
+        this.destinationZone = destinationZone;
     }
 
     /**
      * @return tipo de vehículo solicitado.
      */
-    public String getVehicle_type() {
-        return vehicle_type;
+    public String getVehicleType() {
+        return vehicleType;
     }
 
     /**
-     * @param vehicle_type tipo de vehículo solicitado.
+     * @param vehicleType tipo de vehículo solicitado.
      */
-    public void setVehicle_type(String vehicle_type) {
-        this.vehicle_type = vehicle_type;
+    public void setVehicleType(String vehicleType) {
+        this.vehicleType = vehicleType;
     }
 }
