@@ -175,6 +175,7 @@ public class PredictTripPriceUseCase {
             logger.error("Persistencia devolvió resultado inválido");
             throw new RuntimeException("Error interno al guardar el viaje");
         }
+        //fixing github
 
         logger.info("Viaje persistido correctamente con ID={}", savedTrip.getId());
         return savedTrip;
