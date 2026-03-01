@@ -1,11 +1,11 @@
 package com.jorge.taxi.application.usecase;
 
 import com.jorge.taxi.application.exception.PredictionServiceUnavailableException;
-import com.jorge.taxi.application.model.TripFeatures;
 import com.jorge.taxi.application.port.out.MlPredictionPort;
 import com.jorge.taxi.application.port.out.TripRepositoryPort;
 import com.jorge.taxi.application.usecase.prediction.PredictTripPriceUseCase;
 import com.jorge.taxi.domain.Trip;
+import com.jorge.taxi.infrastructure.adapter.out.ml.model.TripFeatures;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

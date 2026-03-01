@@ -3,6 +3,8 @@ package com.jorge.taxi.application.model;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import com.jorge.taxi.infrastructure.adapter.out.ml.model.TripFeatures;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 /**

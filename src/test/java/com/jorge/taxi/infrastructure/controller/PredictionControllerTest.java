@@ -1,8 +1,10 @@
 package com.jorge.taxi.infrastructure.controller;
 
-import com.jorge.taxi.application.dto.TripRequest;
 import com.jorge.taxi.application.exception.PredictionServiceUnavailableException;
 import com.jorge.taxi.domain.Trip;
+import com.jorge.taxi.infrastructure.adapter.in.web.PredictionController;
+import com.jorge.taxi.infrastructure.adapter.in.web.dto.TripRequest;
+import com.jorge.taxi.infrastructure.adapter.out.ml.model.TripFeatures;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -17,7 +19,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.math.BigDecimal;
 
-import com.jorge.taxi.application.model.TripFeatures;
 import com.jorge.taxi.application.usecase.prediction.PredictTripPriceUseCase;
 
 @WebMvcTest(controllers = PredictionController.class)

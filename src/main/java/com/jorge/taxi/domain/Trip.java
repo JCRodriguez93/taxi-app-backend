@@ -34,7 +34,7 @@ import java.util.Objects;
  * </ul>
  *
  * @author Jorge Campos Rodríguez
- * @version 1.0.3
+ * @version 1.0.5
  */
 @Entity
 @Table(name = "trips")

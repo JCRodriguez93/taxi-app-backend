@@ -1,4 +1,4 @@
-package com.jorge.taxi.infrastructure.web;
+package com.jorge.taxi.infrastructure.adapter.in.web;
 
 import com.jorge.taxi.application.exception.PredictionServiceUnavailableException;
 import org.springframework.http.HttpStatus;

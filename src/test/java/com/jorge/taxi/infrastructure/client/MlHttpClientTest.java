@@ -1,8 +1,9 @@
 package com.jorge.taxi.infrastructure.client;
 
-import com.jorge.taxi.application.dto.PredictionResponse;
-import com.jorge.taxi.application.model.TripFeatures;
 import com.jorge.taxi.application.exception.PredictionServiceUnavailableException;
+import com.jorge.taxi.infrastructure.adapter.in.web.dto.PredictionResponse;
+import com.jorge.taxi.infrastructure.adapter.out.ml.model.MlHttpClient;
+import com.jorge.taxi.infrastructure.adapter.out.ml.model.TripFeatures;
 import com.jorge.taxi.infrastructure.config.MlServiceProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

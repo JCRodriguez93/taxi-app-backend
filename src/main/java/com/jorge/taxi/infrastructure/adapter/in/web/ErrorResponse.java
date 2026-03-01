@@ -1,4 +1,4 @@
-package com.jorge.taxi.infrastructure.web;
+package com.jorge.taxi.infrastructure.adapter.in.web;
 
 /**
  * Representa la respuesta de error devuelta por la API.

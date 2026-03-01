@@ -1,6 +1,9 @@
 package com.jorge.taxi.infrastructure.repository;
 
 import com.jorge.taxi.domain.Trip;
+import com.jorge.taxi.infrastructure.adapter.out.persistence.SpringDataTripRepository;
+import com.jorge.taxi.infrastructure.adapter.out.persistence.TripRepositoryAdapter;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
