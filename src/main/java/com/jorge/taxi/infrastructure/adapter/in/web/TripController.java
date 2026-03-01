@@ -1,4 +1,4 @@
-package com.jorge.taxi.infrastructure.controller;
+package com.jorge.taxi.infrastructure.adapter.in.web;
 
 import com.jorge.taxi.domain.Trip;
 import com.jorge.taxi.application.usecase.query.GetTripUseCase;

@@ -3,7 +3,7 @@ package com.jorge.taxi.application.usecase.status;
 import org.springframework.stereotype.Service;
 
 import com.jorge.taxi.domain.Trip;
-import com.jorge.taxi.infrastructure.repository.SpringDataTripRepository;
+import com.jorge.taxi.infrastructure.adapter.out.persistence.SpringDataTripRepository;
 
 /**
  * Caso de uso para comenzar un viaje.

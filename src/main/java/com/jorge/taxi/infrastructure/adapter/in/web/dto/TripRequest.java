@@ -1,4 +1,4 @@
-package com.jorge.taxi.application.dto;
+package com.jorge.taxi.infrastructure.adapter.in.web.dto;
 
 import jakarta.validation.constraints.*;
 
@@ -26,7 +26,7 @@ import jakarta.validation.constraints.*;
  * @author Jorge Campos Rodríguez
  * @version 1.0.0
  * @see com.jorge.taxi.application.usecase.prediction.PredictTripPriceUseCase
- * @see com.jorge.taxi.infrastructure.controller.PredictionController
+ * @see com.jorge.taxi.infrastructure.adapter.in.web.PredictionController
  */
 public class TripRequest {
 

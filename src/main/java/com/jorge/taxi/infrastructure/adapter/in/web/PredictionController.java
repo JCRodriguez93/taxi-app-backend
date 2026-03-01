@@ -1,11 +1,12 @@
-package com.jorge.taxi.infrastructure.controller;
+package com.jorge.taxi.infrastructure.adapter.in.web;
 
 import org.springframework.web.bind.annotation.*;
 
-import com.jorge.taxi.application.dto.TripRequest;
-import com.jorge.taxi.application.model.TripFeatures;
 import com.jorge.taxi.application.usecase.prediction.PredictTripPriceUseCase;
 import com.jorge.taxi.domain.Trip;
+import com.jorge.taxi.infrastructure.adapter.in.web.dto.TripRequest;
+import com.jorge.taxi.infrastructure.adapter.out.ml.model.TripFeatures;
+
 import jakarta.validation.Valid;
 
 /**

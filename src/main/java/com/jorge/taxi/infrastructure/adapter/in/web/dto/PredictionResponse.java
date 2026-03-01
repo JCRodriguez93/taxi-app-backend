@@ -1,4 +1,4 @@
-package com.jorge.taxi.application.dto;
+package com.jorge.taxi.infrastructure.adapter.in.web.dto;
 
 import java.math.BigDecimal;
 

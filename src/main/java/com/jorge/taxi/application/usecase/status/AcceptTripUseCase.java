@@ -1,7 +1,8 @@
 package com.jorge.taxi.application.usecase.status;
 
 import com.jorge.taxi.domain.Trip;
-import com.jorge.taxi.infrastructure.repository.SpringDataTripRepository;
+import com.jorge.taxi.infrastructure.adapter.out.persistence.SpringDataTripRepository;
+
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 

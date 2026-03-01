@@ -1,4 +1,4 @@
-package com.jorge.taxi.application.model;
+package com.jorge.taxi.infrastructure.adapter.out.ml.model;
 
 import java.util.Objects;
 
@@ -26,7 +26,7 @@ import java.util.Objects;
  * </p>
  *
  * @author Jorge Campos Rodríguez
- * @version 1.0.1
+ * @version 1.0.2
  */
 public class TripFeatures {
 
@@ -68,6 +68,23 @@ public class TripFeatures {
     private Integer hour_of_day;
 
     /**
+	 * Zona geográfica de origen del viaje.
+	 * <p>
+	 * Puede representar un barrio, distrito o área definida.
+	 * Se utiliza para análisis estadísticos como zonas calientes.
+	 * </p>
+	 */
+    private String origin_zone;
+    
+    /**
+	 * Zona geográfica de destino del viaje.
+	 * <p>
+	 * Permite realizar análisis de frecuencia de trayectos entre zonas
+	 * y cálculos de demanda por región.
+	 * </p>
+	 */
+    private String destination_zone;
+    /**
      * Constructor por defecto.
      * <p>
      * Permite crear el objeto vacío e ir seteando las propiedades
@@ -75,6 +92,41 @@ public class TripFeatures {
      * </p>
      */
     public TripFeatures() {
+    }
+    
+    /**
+     * Constructor completo de TripFeatures.
+     *
+     * <p>
+     * Se utiliza cuando se necesitan definir todas las propiedades relevantes
+     * de un viaje para el modelo de Machine Learning, incluyendo zonas y tipo de vehículo.
+     * </p>
+     *
+     * @param distance_km       distancia del viaje en kilómetros
+     * @param duration_min      duración del viaje en minutos
+     * @param vehicle_type      tipo de vehículo solicitado
+     * @param passenger_count   número de pasajeros (puede ser null)
+     * @param demand_index      índice de demanda (puede ser null)
+     * @param hour_of_day       hora del día (0-23) (puede ser null)
+     * @param origin_zone       zona de origen del viaje
+     * @param destination_zone  zona de destino del viaje
+     */
+    public TripFeatures(double distance_km,
+                        double duration_min,
+                        String vehicle_type,
+                        Integer passenger_count,
+                        Double demand_index,
+                        Integer hour_of_day,
+                        String origin_zone,
+                        String destination_zone) {
+        this.distance_km = distance_km;
+        this.duration_min = duration_min;
+        this.vehicle_type = vehicle_type;
+        this.passenger_count = passenger_count;
+        this.demand_index = demand_index;
+        this.hour_of_day = hour_of_day;
+        this.origin_zone = origin_zone;
+        this.destination_zone = destination_zone;
     }
 
     /**
@@ -199,6 +251,41 @@ public class TripFeatures {
         this.hour_of_day = hour_of_day;
     }
 
+    /**
+	 * Devuelve la zona de origen del viaje.
+	 *
+	 * @return zona de origen.
+	 */
+	public String getOrigin_zone() {
+	    return origin_zone;
+	}
+
+	/**
+	 * Establece la zona de origen del viaje.
+	 *
+	 * @param origin_zone ubicación inicial donde se recoge al pasajero.
+	 */
+	public void setOrigin_zone(String origin_zone) {
+	    this.origin_zone = origin_zone;
+	}
+
+	/**
+	 * Devuelve la zona de destino del viaje.
+	 *
+	 * @return zona de destino.
+	 */
+	public String getDestination_zone() {
+	    return destination_zone;
+	}
+
+	/**
+	 * Establece la zona de destino del viaje.
+	 *
+	 * @param destination_zone ubicación final donde se deja al pasajero.
+	 */
+	public void setDestination_zone(String destination_zone) {
+	    this.destination_zone = destination_zone;
+	}
     // ==================== EQUALS & HASHCODE ====================
 
     @Override

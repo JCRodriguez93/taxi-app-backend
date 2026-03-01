@@ -1,4 +1,4 @@
-package com.jorge.taxi.infrastructure.client;
+package com.jorge.taxi.infrastructure.adapter.out.ml;
 
 import java.math.BigDecimal;
 
@@ -11,31 +11,24 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
-import com.jorge.taxi.application.dto.PredictionResponse;
 import com.jorge.taxi.application.exception.PredictionServiceUnavailableException;
-import com.jorge.taxi.application.model.TripFeatures;
-import com.jorge.taxi.application.port.out.MlPredictionPort;
+import com.jorge.taxi.infrastructure.adapter.in.web.dto.PredictionResponse;
+import com.jorge.taxi.infrastructure.adapter.in.web.dto.TripRequest;
+import com.jorge.taxi.infrastructure.adapter.out.ml.model.TripFeatures;
 import com.jorge.taxi.infrastructure.config.MlServiceProperties;
-import com.jorge.taxi.application.dto.TripRequest;
 
 /**
- * Adaptador HTTP que implementa {@link MlPredictionPort}
- * y se encarga de traducir las características del viaje
- * en una llamada al microservicio de Machine Learning.
+ * Cliente HTTP encargado exclusivamente de la comunicación
+ * con el microservicio de Machine Learning.
  *
- * <p>Responsabilidades:</p>
- * <ul>
- *   <li>Convertir {@link TripFeatures} en un DTO externo.</li>
- *   <li>Gestionar la comunicación HTTP.</li>
- *   <li>Validar la respuesta del servicio ML.</li>
- *   <li>Traducir errores técnicos en excepciones de aplicación.</li>
- * </ul>
- *
- * @author Jorge Campos Rodríguez
- * @version 1.0.4
+ * No implementa el puerto. Es un detalle técnico interno
+ * del adaptador ML.
+ * 
+* @author Jorge Campos Rodríguez
+ * @version 1.0.6
  */
 @Component
-public class MlHttpClient implements MlPredictionPort {
+public class MlHttpClient {
 
     private static final Logger logger =
             LoggerFactory.getLogger(MlHttpClient.class);
@@ -43,33 +36,25 @@ public class MlHttpClient implements MlPredictionPort {
     private final RestTemplate restTemplate;
     private final MlServiceProperties properties;
 
-    public MlHttpClient(RestTemplate restTemplate, MlServiceProperties properties) {
+    public MlHttpClient(RestTemplate restTemplate,
+                        MlServiceProperties properties) {
         this.restTemplate = restTemplate;
         this.properties = properties;
     }
 
     /**
-     * Realiza la llamada al servicio ML utilizando un conjunto
-     * extensible de características del viaje.
-     *
-     * @param features características del viaje utilizadas por el modelo
-     * @return precio base estimado
-     * @throws PredictionServiceUnavailableException si ocurre error de comunicación
-     *         o si la respuesta es inválida
+     * Llama al microservicio ML y devuelve el precio estimado.
      */
-    @Override
-    public BigDecimal predict(TripFeatures features) {
+    public BigDecimal callPrediction(TripFeatures features) {
 
         long startTime = System.currentTimeMillis();
 
         logger.debug("ML request -> url={}, features={}",
                 properties.getUrl(), features);
 
-        // Conversión Application → Infrastructure DTO
         TripRequest request = new TripRequest();
         request.setDistance_km(features.getDistance_km());
         request.setDuration_min(features.getDuration_min());
-        // Aquí podrás añadir más campos cuando el modelo evolucione
 
         try {
 
@@ -83,17 +68,13 @@ public class MlHttpClient implements MlPredictionPort {
             long duration = System.currentTimeMillis() - startTime;
 
             if (response == null) {
-                logger.warn("ML response is null ({} ms)", duration);
                 throw new PredictionServiceUnavailableException(
                         "ML service returned null response");
             }
 
-            logger.debug("ML raw response -> {}", response);
-
             BigDecimal price = response.getEstimated_price();
 
             if (price == null || price.compareTo(BigDecimal.ZERO) < 0) {
-                logger.warn("Invalid ML price received: {} ({} ms)", price, duration);
                 throw new PredictionServiceUnavailableException(
                         "ML service returned invalid price value");
             }
@@ -105,22 +86,18 @@ public class MlHttpClient implements MlPredictionPort {
 
         } catch (ResourceAccessException e) {
 
-            logger.error("Timeout or connection error calling ML service", e);
             throw new PredictionServiceUnavailableException(
                     "ML service timeout or connection error", e);
 
         } catch (HttpStatusCodeException e) {
 
             HttpStatusCode status = e.getStatusCode();
-            logger.error("ML service returned HTTP error: status={}, body={}",
-                    status, e.getResponseBodyAsString(), e);
 
             throw new PredictionServiceUnavailableException(
                     "ML service responded with HTTP error: " + status, e);
 
         } catch (RestClientException e) {
 
-            logger.error("Unexpected REST error calling ML service", e);
             throw new PredictionServiceUnavailableException(
                     "Unexpected ML communication error", e);
         }

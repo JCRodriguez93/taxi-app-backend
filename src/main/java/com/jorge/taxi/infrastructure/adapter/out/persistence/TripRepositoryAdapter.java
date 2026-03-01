@@ -1,4 +1,4 @@
-package com.jorge.taxi.infrastructure.repository;
+package com.jorge.taxi.infrastructure.adapter.out.persistence;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -1,4 +1,4 @@
-package com.jorge.taxi.infrastructure.repository;
+package com.jorge.taxi.infrastructure.adapter.out.persistence;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import com.jorge.taxi.domain.Trip;
