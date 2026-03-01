@@ -2,13 +2,12 @@ package com.jorge.taxi.application.usecase.prediction;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.Objects;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import com.jorge.taxi.application.exception.PredictionServiceUnavailableException;
+import com.jorge.taxi.application.model.PredictTripCommand;
 import com.jorge.taxi.application.port.out.MlPredictionPort;
 import com.jorge.taxi.application.port.out.TripRepositoryPort;
 import com.jorge.taxi.domain.Trip;
@@ -34,10 +33,15 @@ import com.jorge.taxi.infrastructure.adapter.out.ml.model.TripFeatures;
  * arquitectura <b>Ports &amp; Adapters</b> para separar responsabilidades.</p>
  *
  * @author Jorge Campos Rodríguez
- * @version 1.0.5
+ * @version 1.0.12
  * @see MlPredictionPort
  * @see TripRepositoryPort
  * @see Trip
+ */
+/**
+ * Caso de uso encargado de obtener una predicción del precio estimado
+ * de un viaje a través del puerto de predicción y, opcionalmente,
+ * registrar o persistir información relacionada con el viaje.
  */
 @Service
 public class PredictTripPriceUseCase {
@@ -48,6 +52,12 @@ public class PredictTripPriceUseCase {
     private final MlPredictionPort mlPredictionPort;
     private final TripRepositoryPort tripRepositoryPort;
 
+    /**
+     * Crea una instancia del caso de uso para predecir el precio de un viaje.
+     *
+     * @param mlPredictionPort puerto que permite comunicarse con el servicio de predicción ML
+     * @param tripRepositoryPort puerto para acceder y persistir información de viajes
+     */
     public PredictTripPriceUseCase(MlPredictionPort mlPredictionPort,
                                    TripRepositoryPort tripRepositoryPort) {
         this.mlPredictionPort = mlPredictionPort;
@@ -55,134 +65,103 @@ public class PredictTripPriceUseCase {
     }
 
     /**
-     * Ejecuta la predicción de precio estimado de un viaje a partir
-     * de un objeto {@link TripFeatures} y persiste el resultado.
+     * Ejecuta la predicción del precio estimado de un viaje a partir de un
+     * {@link PredictTripCommand} y persiste el resultado.
      *
-     * <p>Se realizan validaciones técnicas, de negocio y de coherencia,
-     * se llama al ML y se valida el precio devuelto antes de persistir.</p>
+     * <p>Incluye validaciones técnicas y de negocio, la llamada al servicio de
+     * predicción ML y la verificación del precio devuelto antes de guardar el viaje.</p>
      *
-     * @param features objeto {@link TripFeatures} que contiene todos
-     *                 los atributos del viaje necesarios para la predicción
-     * @return {@link Trip} persistido con ID generado
-     * @throws IllegalArgumentException si los parámetros de entrada son inválidos
-     * @throws PredictionServiceUnavailableException si el ML falla o devuelve precio inválido
-     * @throws RuntimeException si ocurre un error de persistencia
+     * <p>Validaciones realizadas:</p>
+     * <ul>
+     *     <li>Distancia y duración positivas, finitas y no NaN.</li>
+     *     <li>Velocidad media coherente (se registra un aviso si es sospechosa).</li>
+     *     <li>Precio devuelto por el ML válido, no negativo y con máximo dos decimales.</li>
+     *     <li>Conversión segura del tipo de vehículo, con fallback a STANDARD.</li>
+     *     <li>Persistencia correcta del viaje con ID generado.</li>
+     * </ul>
+     *
+     * @param command objeto {@link PredictTripCommand} con los datos necesarios para la predicción
+     * @return el {@link Trip} persistido con su ID generado
+     * @throws IllegalArgumentException si los parámetros de entrada son inválidos (NaN, infinito o ≤ 0)
+     * @throws PredictionServiceUnavailableException si el servicio ML falla o devuelve un precio inválido
+     * @throws RuntimeException si ocurre un error al persistir el viaje
      */
-    public Trip execute(TripFeatures features) {
+    public Trip execute(PredictTripCommand command) {
 
-    logger.info("Inicio ejecución PredictTripPriceUseCase -> features={}", features);
+        logger.info("Inicio ejecución PredictTripPriceUseCase -> command={}", command);
 
-    // ================= VALIDACIÓN TÉCNICA =================
-    if (features == null) {
-        logger.error("Objeto TripFeatures nulo");
-        throw new IllegalArgumentException("TripFeatures no puede ser nulo");
-    }
+        if (command == null) {
+            throw new IllegalArgumentException("PredictTripCommand no puede ser nulo");
+        }
 
-    double distance_km = features.getDistance_km();
-    double duration_min = features.getDuration_min();
+        double distanceKm = command.getDistance_km();
+        double durationMin = command.getDuration_min();
 
-    if (Double.isNaN(distance_km) || Double.isNaN(duration_min)) {
-        logger.error("Valores NaN detectados en TripFeatures");
-        throw new IllegalArgumentException("Los valores no pueden ser NaN");
-    }
+        // ================= VALIDACIÓN DE PARÁMETROS =================
+        if (Double.isNaN(distanceKm) || Double.isInfinite(distanceKm) || distanceKm <= 0) {
+            throw new IllegalArgumentException("Distance must be a finite positive number");
+        }
 
-    if (Double.isInfinite(distance_km) || Double.isInfinite(duration_min)) {
-        logger.error("Valores infinitos detectados en TripFeatures");
-        throw new IllegalArgumentException("Los valores no pueden ser infinitos");
-    }
+        if (Double.isNaN(durationMin) || Double.isInfinite(durationMin) || durationMin <= 0) {
+            throw new IllegalArgumentException("Duration must be a finite positive number");
+        }
 
-    // ================= VALIDACIÓN DE NEGOCIO =================
-    if (distance_km <= 0) {
-        logger.warn("Distancia inválida recibida: {}", distance_km);
-        throw new IllegalArgumentException("La distancia debe ser mayor que cero");
-    }
+        // ================= VALIDACIÓN DE NEGOCIO =================
+        double avgSpeed = distanceKm / (durationMin / 60.0); // km/h
+        if (avgSpeed < 1 || avgSpeed > 300) {
+            logger.warn("Velocidad media sospechosa detectada: {} km/h", avgSpeed);
+        }
 
-    if (duration_min <= 0) {
-        logger.warn("Duración inválida recibida: {}", duration_min);
-        throw new IllegalArgumentException("La duración debe ser mayor que cero");
-    }
+        // ================= CONSTRUCCIÓN MODELO PARA ML =================
+        TripFeatures features = new TripFeatures();
+        features.setDistance_km(distanceKm);
+        features.setDuration_min(durationMin);
+        features.setOrigin_zone(command.getOrigin_zone());
+        features.setDestination_zone(command.getDestination_zone());
+        features.setVehicle_type(command.getVehicle_type());
 
-    double avgSpeed = distance_km / (duration_min / 60.0);
-    if (avgSpeed < 1 || avgSpeed > 300) {
-        logger.warn("Velocidad media sospechosa detectada: {} km/h", avgSpeed);
-    }
+        // ================= LLAMADA AL SERVICIO ML =================
+        BigDecimal price;
+        try {
+            price = mlPredictionPort.predict(features);
+        } catch (PredictionServiceUnavailableException e) {
+            throw e; // relanzamos explícitamente
+        } catch (Exception e) {
+            throw new PredictionServiceUnavailableException("Error en el servicio ML", e);
+        }
 
-    // ================= LLAMADA AL SERVICIO ML =================
-    BigDecimal price;
-    try {
-        price = mlPredictionPort.predict(features);
-        logger.debug("Respuesta ML recibida -> precio={}", price);
-    } catch (PredictionServiceUnavailableException e) {
-        logger.error("Servicio ML no disponible", e);
-        throw e;
-    } catch (Exception e) {
-        logger.error("Error inesperado durante la predicción ML", e);
-        throw new PredictionServiceUnavailableException(
-                "Error inesperado en el servicio ML", e);
-    }
+        // ================= VALIDACIÓN DEL PRECIO =================
+        if (price == null || price.compareTo(BigDecimal.ZERO) < 0 || price.scale() > 2) {
+            throw new PredictionServiceUnavailableException("El servicio ML devolvió un precio inválido");
+        }
 
-    // ================= VALIDACIÓN DEL PRECIO =================
-    if (price == null) {
-        logger.error("Precio nulo recibido del ML");
-        throw new PredictionServiceUnavailableException(
-                "El servicio ML devolvió un precio inválido");
-    }
+        // ================= CONVERSIÓN VEHICLE TYPE =================
+        VehicleType vehicleTypeEnum;
+        try {
+            vehicleTypeEnum = VehicleType.valueOf(command.getVehicle_type().toUpperCase());
+        } catch (Exception e) {
+            vehicleTypeEnum = VehicleType.STANDARD;
+        }
 
-    if (price.compareTo(BigDecimal.ZERO) < 0) {
-        logger.error("Precio negativo recibido del ML: {}", price);
-        throw new PredictionServiceUnavailableException(
-                "El servicio ML devolvió un precio negativo");
-    }
+        // ================= CREACIÓN DEL DOMINIO =================
+        Trip trip = new Trip(
+                distanceKm,
+                durationMin,
+                price,
+                command.getOrigin_zone(),
+                command.getDestination_zone(),
+                vehicleTypeEnum,
+                TripStatus.PENDING,
+                LocalDateTime.now()
+        );
 
-    if (price.scale() > 2) {
-        logger.error("Precio con demasiados decimales: {}", price);
-        throw new PredictionServiceUnavailableException(
-                "El servicio ML devolvió un precio con demasiados decimales");
-    }
-
-    // ================= VALIDACIÓN Y CONVERSIÓN VEHICLE_TYPE =================
-    VehicleType vehicleTypeEnum;
-    try {
-        vehicleTypeEnum = VehicleType.valueOf(features.getVehicle_type().toUpperCase());
-    } catch (Exception e) {
-        logger.warn("VehicleType inválido o nulo, usando DEFAULT: {}", features.getVehicle_type());
-        vehicleTypeEnum = VehicleType.STANDARD; // o el valor que tenga sentido por defecto
-    }
-
-    // ================= VALIDACIÓN ZONAS =================
-    String originZone = Objects.requireNonNull(features.getOrigin_zone(), "Origin zone no puede ser nula");
-    String destinationZone = Objects.requireNonNull(features.getDestination_zone(), "Destination zone no puede ser nula");
-
-    // ================= CREACIÓN DEL DOMINIO =================
-    Trip trip = new Trip(
-            distance_km,
-            duration_min,
-            price,
-            originZone,
-            destinationZone,
-            vehicleTypeEnum,
-            TripStatus.PENDING,
-            LocalDateTime.now()
-    );
-
-    logger.debug("Objeto Trip creado antes de persistencia: {}", trip);
-
-    // ================= PERSISTENCIA =================
-    try {
+        // ================= PERSISTENCIA =================
         Trip savedTrip = tripRepositoryPort.save(trip);
 
         if (savedTrip == null || savedTrip.getId() == null) {
-            logger.error("Persistencia devolvió resultado inválido");
             throw new RuntimeException("Error interno al guardar el viaje");
         }
-        
-//fix
-        logger.info("Viaje persistido correctamente con ID={}", savedTrip.getId());
-        return savedTrip;
 
-    } catch (Exception e) {
-        logger.error("Error al persistir el viaje en base de datos", e);
-        throw new RuntimeException(
-                "Error al guardar el viaje en la base de datos", e);
+        return savedTrip;
     }
-}}
+}

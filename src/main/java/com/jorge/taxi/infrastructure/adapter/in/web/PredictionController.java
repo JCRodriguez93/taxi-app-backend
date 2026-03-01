@@ -1,46 +1,63 @@
 package com.jorge.taxi.infrastructure.adapter.in.web;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.jorge.taxi.application.model.PredictTripCommand;
 import com.jorge.taxi.application.usecase.prediction.PredictTripPriceUseCase;
 import com.jorge.taxi.domain.Trip;
 import com.jorge.taxi.infrastructure.adapter.in.web.dto.TripRequest;
-import com.jorge.taxi.infrastructure.adapter.out.ml.model.TripFeatures;
 
 import jakarta.validation.Valid;
 
 /**
- * Controlador REST para la predicción de precios de viajes.
- * 
- * <p>Proporciona un endpoint <b>/prediction</b> que recibe un {@link TripRequest}
- * y devuelve un {@link Trip} con el precio estimado.</p>
- * 
- * <p>El flujo es:</p>
- * <ol>
- *   <li>Se valida el {@link TripRequest} usando las anotaciones de Jakarta Validation.</li>
- *   <li>Se construye un objeto {@link TripFeatures} a partir del request.</li>
- *   <li>Se invoca {@link PredictTripPriceUseCase#execute(TripFeatures)} para calcular
- *       el precio estimado.</li>
- *   <li>Se devuelve el objeto {@link Trip} persistido.</li>
- * </ol>
- * 
- * <p>Excepciones posibles:</p>
+ * Adaptador de entrada REST encargado de exponer el caso de uso
+ * de predicción de precio de viaje a través de HTTP.
+ *
+ * <p>Este controlador pertenece a la capa de <b>infraestructura</b>
+ * dentro de la arquitectura hexagonal y actúa como un
+ * <b>Driving Adapter</b>, transformando solicitudes HTTP
+ * en comandos comprensibles por la capa de aplicación.</p>
+ *
+ * <h2>Responsabilidades</h2>
  * <ul>
- *   <li>{@link jakarta.validation.ConstraintViolationException} si los datos del request no cumplen
- *       con las restricciones (@NotNull, @Positive, @DecimalMax).</li>
- *   <li>{@link com.jorge.taxi.application.exception.PredictionServiceUnavailableException} si
- *       el servicio de Machine Learning no está disponible.</li>
+ *   <li>Recibir y validar el {@link TripRequest} mediante Jakarta Validation.</li>
+ *   <li>Mapear el DTO externo a un {@link PredictTripCommand} (modelo de aplicación).</li>
+ *   <li>Invocar el caso de uso {@link PredictTripPriceUseCase}.</li>
+ *   <li>Devolver la entidad {@link Trip} persistida como respuesta HTTP.</li>
  * </ul>
- * 
- * <p>Ejemplo de uso con <code>curl</code>:</p>
+ *
+ * <h2>Flujo de ejecución</h2>
+ * <ol>
+ *   <li>Cliente envía POST /prediction con JSON.</li>
+ *   <li>Spring valida el cuerpo de la petición.</li>
+ *   <li>Se construye un {@link PredictTripCommand}.</li>
+ *   <li>Se ejecuta el caso de uso.</li>
+ *   <li>Se devuelve HTTP 200 con el {@link Trip} creado.</li>
+ * </ol>
+ *
+ * <h2>Posibles respuestas</h2>
+ * <ul>
+ *   <li>200 OK → Predicción realizada correctamente.</li>
+ *   <li>400 Bad Request → Error de validación.</li>
+ *   <li>503 Service Unavailable → Servicio ML no disponible.</li>
+ * </ul>
+ *
+ * <h2>Ejemplo de uso</h2>
  * <pre>
  * curl -X POST http://localhost:8080/prediction \
  *      -H "Content-Type: application/json" \
- *      -d '{"distance_km": 12.5, "duration_min": 20.0}'
+ *      -d '{
+ *            "distance_km": 12.5,
+ *            "duration_min": 20.0,
+ *            "origin_zone": "A",
+ *            "destination_zone": "B",
+ *            "vehicle_type": "STANDARD"
+ *          }'
  * </pre>
- * 
+ *
  * @author Jorge Campos Rodríguez
- * @version 1.0.2
+ * @version 1.0.4
  */
 @RestController
 @RequestMapping("/prediction")
@@ -52,18 +69,19 @@ public class PredictionController {
         this.useCase = useCase;
     }
 
-    /**
-     * Endpoint para predecir el precio de un viaje.
-     *
-     * @param request datos del viaje (distancia y duración) a validar.
-     * @return el {@link Trip} con el precio estimado calculado y persistido.
-     */
     @PostMapping
-    public Trip predict(@Valid @RequestBody TripRequest request) {
-        TripFeatures features = new TripFeatures();
-        features.setDistance_km(request.getDistance_km());
-        features.setDuration_min(request.getDuration_min());
+    public ResponseEntity<Trip> predict(@Valid @RequestBody TripRequest request) {
 
-        return useCase.execute(features);
+        PredictTripCommand command = new PredictTripCommand(
+                request.getDistance_km(),
+                request.getDuration_min(),
+                request.getOrigin_zone(),
+                request.getDestination_zone(),
+                request.getVehicle_type()
+        );
+
+        Trip trip = useCase.execute(command);
+
+        return ResponseEntity.ok(trip);
     }
 }
