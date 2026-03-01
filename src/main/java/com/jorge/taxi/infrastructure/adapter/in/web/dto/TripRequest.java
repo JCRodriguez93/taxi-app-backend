@@ -3,30 +3,38 @@ package com.jorge.taxi.infrastructure.adapter.in.web.dto;
 import jakarta.validation.constraints.*;
 
 /**
- * DTO que representa la solicitud de predicción de un viaje.
- * Contiene los parámetros de entrada necesarios para calcular
- * el precio estimado del viaje a través del servicio de ML.
+ * DTO que representa la solicitud HTTP para la predicción
+ * del precio estimado de un viaje.
  *
- * <p>Las validaciones se aplican mediante anotaciones de Jakarta Validation:</p>
+ * <p>Esta clase pertenece a la capa de <b>infraestructura</b> y actúa como
+ * modelo de entrada del adaptador REST. Su única responsabilidad es
+ * transportar datos desde el exterior hacia la capa de aplicación.</p>
  *
+ * <p>No contiene lógica de negocio. Las reglas de negocio se validan
+ * posteriormente en el caso de uso.</p>
+ *
+ * <h2>Validaciones aplicadas</h2>
  * <ul>
- *   <li>{@link NotNull} – asegura que los valores no sean nulos.</li>
- *   <li>{@link Positive} – asegura que los valores sean mayores que 0.</li>
- *   <li>{@link DecimalMax} – establece un valor máximo permitido.</li>
+ *   <li>{@link NotNull} – el campo no puede ser nulo.</li>
+ *   <li>{@link Positive} – el valor debe ser mayor que cero.</li>
+ *   <li>{@link DecimalMax} – límite máximo permitido.</li>
+ *   <li>{@link NotBlank} – cadena no vacía ni solo espacios.</li>
+ *   <li>{@link Size} – restricción de longitud.</li>
  * </ul>
  *
- * <p>Ejemplo de uso:</p>
- *
+ * <h2>Ejemplo JSON válido</h2>
  * <pre>
- * TripRequest request = new TripRequest();
- * request.setDistance_km(15.0);
- * request.setDuration_min(30.0);
+ * {
+ *   "distance_km": 12.5,
+ *   "duration_min": 20.0,
+ *   "origin_zone": "A",
+ *   "destination_zone": "B",
+ *   "vehicle_type": "STANDARD"
+ * }
  * </pre>
  *
- * @author Jorge Campos Rodríguez
- * @version 1.0.0
- * @see com.jorge.taxi.application.usecase.prediction.PredictTripPriceUseCase
- * @see com.jorge.taxi.infrastructure.adapter.in.web.PredictionController
+ * @author Jorge
+ * @version 1.0.1
  */
 public class TripRequest {
 
@@ -40,35 +48,85 @@ public class TripRequest {
     @DecimalMax(value = "600", message = "Duration is too large")
     private Double duration_min;
 
+    @NotBlank(message = "Origin zone is required")
+    @Size(max = 50, message = "Origin zone is too long")
+    private String origin_zone;
+
+    @NotBlank(message = "Destination zone is required")
+    @Size(max = 50, message = "Destination zone is too long")
+    private String destination_zone;
+
+    @NotBlank(message = "Vehicle type is required")
+    @Size(max = 30, message = "Vehicle type is too long")
+    private String vehicle_type;
+
     /**
-     * Obtiene la distancia del viaje en kilómetros.
-     * @return la distancia en km
+     * @return distancia del viaje en kilómetros.
      */
-    public double getDistance_km() {
+    public Double getDistance_km() {
         return distance_km;
     }
 
     /**
-     * Establece la distancia del viaje en kilómetros.
-     * @param distance_km la distancia a establecer
+     * @param distance_km distancia del viaje en kilómetros.
      */
-    public void setDistance_km(double distance_km) {
+    public void setDistance_km(Double distance_km) {
         this.distance_km = distance_km;
     }
 
     /**
-     * Obtiene la duración del viaje en minutos.
-     * @return la duración en minutos
+     * @return duración del viaje en minutos.
      */
-    public double getDuration_min() {
+    public Double getDuration_min() {
         return duration_min;
     }
 
     /**
-     * Establece la duración del viaje en minutos.
-     * @param duration_min la duración a establecer
+     * @param duration_min duración del viaje en minutos.
      */
-    public void setDuration_min(double duration_min) {
+    public void setDuration_min(Double duration_min) {
         this.duration_min = duration_min;
+    }
+
+    /**
+     * @return zona de origen del viaje.
+     */
+    public String getOrigin_zone() {
+        return origin_zone;
+    }
+
+    /**
+     * @param origin_zone zona de origen del viaje.
+     */
+    public void setOrigin_zone(String origin_zone) {
+        this.origin_zone = origin_zone;
+    }
+
+    /**
+     * @return zona de destino del viaje.
+     */
+    public String getDestination_zone() {
+        return destination_zone;
+    }
+
+    /**
+     * @param destination_zone zona de destino del viaje.
+     */
+    public void setDestination_zone(String destination_zone) {
+        this.destination_zone = destination_zone;
+    }
+
+    /**
+     * @return tipo de vehículo solicitado.
+     */
+    public String getVehicle_type() {
+        return vehicle_type;
+    }
+
+    /**
+     * @param vehicle_type tipo de vehículo solicitado.
+     */
+    public void setVehicle_type(String vehicle_type) {
+        this.vehicle_type = vehicle_type;
     }
 }

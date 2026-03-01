@@ -1,8 +1,7 @@
-package com.jorge.taxi.infrastructure.client;
+package com.jorge.taxi.infrastructure.adapter.out.ml;
 
 import com.jorge.taxi.application.exception.PredictionServiceUnavailableException;
 import com.jorge.taxi.infrastructure.adapter.in.web.dto.PredictionResponse;
-import com.jorge.taxi.infrastructure.adapter.out.ml.model.MlHttpClient;
 import com.jorge.taxi.infrastructure.adapter.out.ml.model.TripFeatures;
 import com.jorge.taxi.infrastructure.config.MlServiceProperties;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,7 +55,7 @@ class MlHttpClientTest {
         when(restTemplate.postForObject(anyString(), any(), eq(PredictionResponse.class)))
                 .thenReturn(response);
 
-        BigDecimal price = mlHttpClient.predict(new TripFeatures(10.0, 15.0));
+        BigDecimal price = mlHttpClient.callPrediction(new TripFeatures(10.0, 15.0));
 
         assertEquals(new BigDecimal("25.00"), price);
 
@@ -76,7 +75,7 @@ class MlHttpClientTest {
 
         PredictionServiceUnavailableException ex = assertThrows(
                 PredictionServiceUnavailableException.class,
-                () -> mlHttpClient.predict(new TripFeatures(10.0, 15.0))
+                () -> mlHttpClient.callPrediction(new TripFeatures(10.0, 15.0))
         );
 
         assertTrue(ex.getMessage().contains("ML service returned null response"));
@@ -92,7 +91,7 @@ class MlHttpClientTest {
                 .thenReturn(response);
 
         assertThrows(PredictionServiceUnavailableException.class,
-                () -> mlHttpClient.predict(new TripFeatures(10.0, 15.0)));
+                () -> mlHttpClient.callPrediction(new TripFeatures(10.0, 15.0)));
     }
     
     @Test
@@ -105,7 +104,7 @@ class MlHttpClientTest {
                 .thenReturn(response);
 
         assertThrows(PredictionServiceUnavailableException.class,
-                () -> mlHttpClient.predict(new TripFeatures(10.0, 15.0)));
+                () -> mlHttpClient.callPrediction(new TripFeatures(10.0, 15.0)));
     }
 
     @Test
@@ -118,7 +117,7 @@ class MlHttpClientTest {
                 .thenReturn(response);
 
         assertThrows(PredictionServiceUnavailableException.class,
-                () -> mlHttpClient.predict(new TripFeatures(10.0, 15.0)));
+                () -> mlHttpClient.callPrediction(new TripFeatures(10.0, 15.0)));
     }
 
     // ============================================================
@@ -133,7 +132,7 @@ class MlHttpClientTest {
 
         PredictionServiceUnavailableException ex = assertThrows(
                 PredictionServiceUnavailableException.class,
-                () -> mlHttpClient.predict(new TripFeatures(10.0, 15.0))
+                () -> mlHttpClient.callPrediction(new TripFeatures(10.0, 15.0))
         );
 
         assertTrue(ex.getMessage().contains("Unexpected ML communication error"));
@@ -152,7 +151,7 @@ class MlHttpClientTest {
 
         PredictionServiceUnavailableException ex = assertThrows(
                 PredictionServiceUnavailableException.class,
-                () -> mlHttpClient.predict(new TripFeatures(10.0, 15.0))
+                () -> mlHttpClient.callPrediction(new TripFeatures(10.0, 15.0))
         );
 
         assertTrue(ex.getMessage().contains("ML service timeout or connection error"));
@@ -174,7 +173,7 @@ class MlHttpClientTest {
 
         PredictionServiceUnavailableException ex = assertThrows(
                 PredictionServiceUnavailableException.class,
-                () -> mlHttpClient.predict(new TripFeatures(10.0, 15.0))
+                () -> mlHttpClient.callPrediction(new TripFeatures(10.0, 15.0))
         );
 
         assertTrue(ex.getMessage().contains("ML service responded with HTTP error"));
@@ -202,7 +201,7 @@ class MlHttpClientTest {
         for (int i = 0; i < concurrentCalls; i++) {
             CompletableFuture<BigDecimal> future = CompletableFuture.supplyAsync(() -> {
                 try {
-                    return mlHttpClient.predict(new TripFeatures(10.0, 15.0));
+                    return mlHttpClient.callPrediction(new TripFeatures(10.0, 15.0));
                 } catch (PredictionServiceUnavailableException e) {
                     throw new RuntimeException(e);
                 }
@@ -248,7 +247,7 @@ class MlHttpClientTest {
         for (int i = 0; i < totalCalls; i++) {
             CompletableFuture<BigDecimal> future = CompletableFuture.supplyAsync(() -> {
                 try {
-                    return mlHttpClient.predict(new TripFeatures(5.0, 7.0));
+                    return mlHttpClient.callPrediction(new TripFeatures(5.0, 7.0));
                 } catch (PredictionServiceUnavailableException e) {
                     return null; // marcar fallo como null
                 }
@@ -305,7 +304,7 @@ class MlHttpClientTest {
         for (int i = 0; i < totalCalls; i++) {
             CompletableFuture<BigDecimal> future = CompletableFuture.supplyAsync(() -> {
                 try {
-                    return mlHttpClient.predict(new TripFeatures(10.0, 20.0));
+                    return mlHttpClient.callPrediction(new TripFeatures(10.0, 20.0));
                 } catch (PredictionServiceUnavailableException e) {
                     return null; // marcar fallo como null
                 }

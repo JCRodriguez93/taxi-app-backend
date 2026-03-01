@@ -1,10 +1,9 @@
-package com.jorge.taxi.infrastructure.controller;
+package com.jorge.taxi.infrastructure.adapter.in.web;
 
 import com.jorge.taxi.application.exception.PredictionServiceUnavailableException;
+import com.jorge.taxi.application.model.PredictTripCommand;
 import com.jorge.taxi.domain.Trip;
-import com.jorge.taxi.infrastructure.adapter.in.web.PredictionController;
 import com.jorge.taxi.infrastructure.adapter.in.web.dto.TripRequest;
-import com.jorge.taxi.infrastructure.adapter.out.ml.model.TripFeatures;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -33,22 +32,22 @@ class PredictionControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    // ------------------ CASOS FELICES ------------------
-
     @Test
     @DisplayName("POST /prediction devuelve el viaje con precio estimado")
     void postPrediction_shouldReturnTrip() throws Exception {
         TripRequest request = new TripRequest();
         request.setDistance_km(20.0);
         request.setDuration_min(10.0);
+        request.setOrigin_zone("A");
+        request.setDestination_zone("B");
+        request.setVehicle_type("STANDARD");
 
         Trip trip = new Trip();
         trip.setDistance_km(20.0);
         trip.setDuration_min(10.0);
-        trip.setEstimated_price(new BigDecimal(50.0));
+        trip.setEstimated_price(new BigDecimal("50.0"));
 
-        // CORREGIDO: usamos any(TripFeatures.class)
-        when(predictTripPriceUseCase.execute(any(TripFeatures.class))).thenReturn(trip);
+        when(predictTripPriceUseCase.execute(any(PredictTripCommand.class))).thenReturn(trip);
 
         mockMvc.perform(post("/prediction")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -63,9 +62,11 @@ class PredictionControllerTest {
         TripRequest request = new TripRequest();
         request.setDistance_km(20.0);
         request.setDuration_min(10.0);
+        request.setOrigin_zone("A");
+        request.setDestination_zone("B");
+        request.setVehicle_type("STANDARD");
 
-        // CORREGIDO: usamos any(TripFeatures.class)
-        when(predictTripPriceUseCase.execute(any(TripFeatures.class)))
+        when(predictTripPriceUseCase.execute(any(PredictTripCommand.class)))
                 .thenThrow(new PredictionServiceUnavailableException("ML service unavailable"));
 
         mockMvc.perform(post("/prediction")
@@ -74,14 +75,16 @@ class PredictionControllerTest {
                 .andExpect(status().isServiceUnavailable())
                 .andExpect(jsonPath("$.message").value("ML service unavailable"));
     }
-    // ------------------ VALIDACIÓN DE CAMPOS ------------------
 
     @Test
     @DisplayName("POST /prediction devuelve 400 si la distancia es negativa o cero")
     void postPrediction_whenDistanceInvalid_shouldReturn400() throws Exception {
         TripRequest request = new TripRequest();
-        request.setDistance_km(-5.0); // negativo
+        request.setDistance_km(-5.0);
         request.setDuration_min(10.0);
+        request.setOrigin_zone("A");
+        request.setDestination_zone("B");
+        request.setVehicle_type("STANDARD");
 
         mockMvc.perform(post("/prediction")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -95,7 +98,10 @@ class PredictionControllerTest {
     void postPrediction_whenDurationInvalid_shouldReturn400() throws Exception {
         TripRequest request = new TripRequest();
         request.setDistance_km(10.0);
-        request.setDuration_min(0.0); // cero
+        request.setDuration_min(0.0);
+        request.setOrigin_zone("A");
+        request.setDestination_zone("B");
+        request.setVehicle_type("STANDARD");
 
         mockMvc.perform(post("/prediction")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -110,6 +116,9 @@ class PredictionControllerTest {
         TripRequest request = new TripRequest();
         request.setDistance_km(1000.0);
         request.setDuration_min(10.0);
+        request.setOrigin_zone("A");
+        request.setDestination_zone("B");
+        request.setVehicle_type("STANDARD");
 
         mockMvc.perform(post("/prediction")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -124,6 +133,9 @@ class PredictionControllerTest {
         TripRequest request = new TripRequest();
         request.setDistance_km(10.0);
         request.setDuration_min(1000.0);
+        request.setOrigin_zone("A");
+        request.setDestination_zone("B");
+        request.setVehicle_type("STANDARD");
 
         mockMvc.perform(post("/prediction")
                 .contentType(MediaType.APPLICATION_JSON)

@@ -4,7 +4,10 @@ import com.jorge.taxi.application.exception.PredictionServiceUnavailableExceptio
 import com.jorge.taxi.application.port.out.MlPredictionPort;
 import com.jorge.taxi.application.port.out.TripRepositoryPort;
 import com.jorge.taxi.application.usecase.prediction.PredictTripPriceUseCase;
+import com.jorge.taxi.application.model.PredictTripCommand;
 import com.jorge.taxi.domain.Trip;
+import com.jorge.taxi.domain.TripStatus;
+import com.jorge.taxi.domain.VehicleType;
 import com.jorge.taxi.infrastructure.adapter.out.ml.model.TripFeatures;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -14,9 +17,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import static org.mockito.Mockito.*;
-
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -25,6 +27,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 class PredictTripPriceUseCaseTest {
@@ -43,59 +46,90 @@ class PredictTripPriceUseCaseTest {
         MockitoAnnotations.openMocks(this);
     }
 
-    // ============================================================
-    // 1. Validaciones técnicas
-    // ============================================================
+    // ======================= CASOS ===========================
 
     @Test
-    @DisplayName("Debe fallar si TripFeatures es nulo")
-    void shouldFailWhenTripFeaturesIsNull() {
-        assertThrows(IllegalArgumentException.class,
-                () -> useCase.execute((TripFeatures)null));
+    @DisplayName("Debe fallar si el comando es nulo")
+    void shouldFailWhenCommandIsNull() {
+        assertThrows(IllegalArgumentException.class, () -> useCase.execute(null));
     }
+
+    @Test
+    @DisplayName("Debe lanzar excepción si ML devuelve null")
+    void shouldThrowIfMlReturnsNull() {
+        PredictTripCommand cmd = new PredictTripCommand(10.0, 15.0, "A", "B", "STANDARD");
+        when(mlPredictionPort.predict(any(TripFeatures.class))).thenReturn(null);
+
+        assertThrows(PredictionServiceUnavailableException.class,
+                () -> useCase.execute(cmd));
+    }
+
+    @Test
+    @DisplayName("Debe lanzar excepción si ML devuelve precio negativo")
+    void shouldThrowIfMlReturnsNegative() {
+        PredictTripCommand cmd = new PredictTripCommand(10.0, 15.0, "A", "B", "STANDARD");
+        when(mlPredictionPort.predict(any(TripFeatures.class)))
+                .thenReturn(BigDecimal.valueOf(-5));
+
+        assertThrows(PredictionServiceUnavailableException.class,
+                () -> useCase.execute(cmd));
+    }
+
+    @Test
+    @DisplayName("Debe crear y guardar un Trip correctamente")
+    void shouldSaveTripSuccessfully() {
+        PredictTripCommand cmd = new PredictTripCommand(10.0, 15.0, "A", "B", "STANDARD");
+        BigDecimal predictedPrice = BigDecimal.valueOf(20.0);
+
+        when(mlPredictionPort.predict(any(TripFeatures.class))).thenReturn(predictedPrice);
+        Trip savedTrip = new Trip(10.0, 15.0, predictedPrice, "A", "B", VehicleType.STANDARD, TripStatus.PENDING, LocalDateTime.now());
+        savedTrip.setId(1L);
+        when(tripRepositoryPort.save(any(Trip.class))).thenReturn(savedTrip);
+
+        Trip result = useCase.execute(cmd);
+
+        assertNotNull(result);
+        assertEquals(savedTrip.getId(), result.getId());
+        assertEquals(predictedPrice, result.getEstimated_price());
+        verify(mlPredictionPort, times(1)).predict(any(TripFeatures.class));
+        verify(tripRepositoryPort, times(1)).save(any(Trip.class));
+    }
+
 
     @Test
     @DisplayName("Debe fallar si distance es NaN")
     void shouldFailWhenDistanceIsNaN() {
-        TripFeatures features = new TripFeatures();
-        features.setDistance_km(Double.NaN);
-        features.setDuration_min(10);
-
+        PredictTripCommand cmd = new PredictTripCommand(Double.NaN, 15.0, "A", "B", "STANDARD");
+       
         assertThrows(IllegalArgumentException.class,
-                () -> useCase.execute(features));
+                () -> useCase.execute(cmd));
     }
 
     @Test
     @DisplayName("Debe fallar si duration es NaN")
     void shouldFailWhenDurationIsNaN() {
-        TripFeatures features = new TripFeatures();
-        features.setDistance_km(10);
-        features.setDuration_min(Double.NaN);
-
+        PredictTripCommand command = new PredictTripCommand(10, Double.NaN, "A", "B", "STANDARD");
         assertThrows(IllegalArgumentException.class,
-                () -> useCase.execute(features));
+                () -> useCase.execute(command));
     }
 
     @Test
     @DisplayName("Debe fallar si distance es infinito")
     void shouldFailWhenDistanceIsInfinite() {
-        TripFeatures features = new TripFeatures();
-        features.setDistance_km(Double.POSITIVE_INFINITY);
-        features.setDuration_min(10);
+        PredictTripCommand command = new PredictTripCommand(Double.POSITIVE_INFINITY, 15, "A", "B", "STANDARD");
+
 
         assertThrows(IllegalArgumentException.class,
-                () -> useCase.execute(features));
+                () -> useCase.execute(command));
     }
 
     @Test
     @DisplayName("Debe fallar si duration es infinito")
     void shouldFailWhenDurationIsInfinite() {
-        TripFeatures features = new TripFeatures();
-        features.setDistance_km(10);
-        features.setDuration_min(Double.NEGATIVE_INFINITY);
-
+        PredictTripCommand command = new PredictTripCommand(10, Double.NEGATIVE_INFINITY, "A", "B", "STANDARD");
+        
         assertThrows(IllegalArgumentException.class,
-                () -> useCase.execute(features));
+                () -> useCase.execute(command));
     }
 
     // ============================================================
@@ -105,23 +139,19 @@ class PredictTripPriceUseCaseTest {
     @Test
     @DisplayName("Debe fallar si distance <= 0")
     void shouldFailWhenDistanceIsZeroOrNegative() {
-        TripFeatures features = new TripFeatures();
-        features.setDistance_km(0);
-        features.setDuration_min(10);
+        PredictTripCommand command = new PredictTripCommand(0, 10, "A", "B", "STANDARD");
 
         assertThrows(IllegalArgumentException.class,
-                () -> useCase.execute(features));
+                () -> useCase.execute(command));
     }
 
     @Test
     @DisplayName("Debe fallar si duration <= 0")
     void shouldFailWhenDurationIsZeroOrNegative() {
-        TripFeatures features = new TripFeatures();
-        features.setDistance_km(10);
-        features.setDuration_min(-5);
+        PredictTripCommand command = new PredictTripCommand(10, -5, "A", "B", "STANDARD");
 
         assertThrows(IllegalArgumentException.class,
-                () -> useCase.execute(features));
+                () -> useCase.execute(command));
     }
 
     // ============================================================
@@ -131,13 +161,16 @@ class PredictTripPriceUseCaseTest {
     @Test
     @DisplayName("Debe permitir velocidad incoherente pero continuar")
     void shouldContinueWithSuspiciousSpeed() {
-        TripFeatures features = new TripFeatures();
-        features.setDistance_km(1);
-        features.setDuration_min(300);
+        PredictTripCommand command = new PredictTripCommand(
+                1,              // distance_km
+                300,            // duration_min
+                "A",            // origin_zone
+                "B",            // destination_zone
+                "STANDARD"      // vehicle_type
+        );
 
-        // El mock ahora devuelve BigDecimal
         when(mlPredictionPort.predict(any(TripFeatures.class)))
-                .thenReturn(new BigDecimal("10.0"));
+        .thenReturn(new BigDecimal("10.0"));
 
         when(tripRepositoryPort.save(any())).thenAnswer(invocation -> {
             Trip original = invocation.getArgument(0);
@@ -146,7 +179,7 @@ class PredictTripPriceUseCaseTest {
             return saved;
         });
 
-        Trip trip = useCase.execute(features);
+        Trip trip = useCase.execute(command);
 
         // Comparación correcta con BigDecimal
         assertEquals(new BigDecimal("10.0"), trip.getEstimated_price());
@@ -160,33 +193,33 @@ class PredictTripPriceUseCaseTest {
     @Test
     @DisplayName("Debe relanzar PredictionServiceUnavailableException si ML falla")
     void shouldThrowWhenMLFails() {
-        TripFeatures features = new TripFeatures();
-        features.setDistance_km(10);
-        features.setDuration_min(10);
+        PredictTripCommand command = new PredictTripCommand(
+                10, 10, "A", "B", "STANDARD"
+        );
 
         when(mlPredictionPort.predict(any(TripFeatures.class)))
                 .thenThrow(new PredictionServiceUnavailableException("ML down"));
 
         assertThrows(PredictionServiceUnavailableException.class,
-                () -> useCase.execute(features));
+                () -> useCase.execute(command));
     }
 
     @Test
     @DisplayName("Debe envolver excepciones inesperadas del ML")
     void shouldWrapUnexpectedMLException() {
-        TripFeatures features = new TripFeatures();
-        features.setDistance_km(10);
-        features.setDuration_min(10);
+        PredictTripCommand command = new PredictTripCommand(
+                10, 10, "A", "B", "STANDARD"
+        );
 
         when(mlPredictionPort.predict(any(TripFeatures.class)))
                 .thenThrow(new RuntimeException("boom"));
 
         PredictionServiceUnavailableException ex = assertThrows(
                 PredictionServiceUnavailableException.class,
-                () -> useCase.execute(features)
+                () -> useCase.execute(command)
         );
 
-        assertTrue(ex.getMessage().contains("Error inesperado"));
+        assertTrue(ex.getMessage().contains("Error en el servicio ML"));
     }
 
     // ============================================================
@@ -196,59 +229,60 @@ class PredictTripPriceUseCaseTest {
     @Test
     @DisplayName("Debe fallar si ML devuelve un precio con demasiados decimales")
     void shouldFailWhenMLReturnsTooManyDecimals() {
-        TripFeatures features = new TripFeatures();
-        features.setDistance_km(10);
-        features.setDuration_min(10);
+        PredictTripCommand command = new PredictTripCommand(
+                10, 10, "A", "B", "STANDARD"
+        );
 
         when(mlPredictionPort.predict(any(TripFeatures.class)))
                 .thenReturn(new BigDecimal("10.123")); // escala = 3
 
         assertThrows(PredictionServiceUnavailableException.class,
-                () -> useCase.execute(features));
-    }    
+                () -> useCase.execute(command));
+    }
+
     @Test
     @DisplayName("Debe fallar si ML devuelve un valor inválido (simulación de NaN)")
     void shouldFailWhenMLReturnsInvalidValue() {
-        TripFeatures features = new TripFeatures();
-        features.setDistance_km(10);
-        features.setDuration_min(10);
+        PredictTripCommand command = new PredictTripCommand(
+                10, 10, "A", "B", "STANDARD"
+        );
 
         // BigDecimal no puede ser NaN → simulamos valor inválido devolviendo null
         when(mlPredictionPort.predict(any(TripFeatures.class)))
                 .thenReturn(null);
 
         assertThrows(PredictionServiceUnavailableException.class,
-                () -> useCase.execute(features));
+                () -> useCase.execute(command));
     }
 
     @Test
     @DisplayName("Debe fallar si ML devuelve un valor inválido (simulación de infinito)")
     void shouldFailWhenMLReturnsInfinite() {
-        TripFeatures features = new TripFeatures();
-        features.setDistance_km(10);
-        features.setDuration_min(10);
+        PredictTripCommand command = new PredictTripCommand(
+                10, 10, "A", "B", "STANDARD"
+        );
 
         // BigDecimal no puede ser infinito → simulamos valor inválido devolviendo null
         when(mlPredictionPort.predict(any(TripFeatures.class)))
                 .thenReturn(null);
 
         assertThrows(PredictionServiceUnavailableException.class,
-                () -> useCase.execute(features));
+                () -> useCase.execute(command));
     }
 
     @Test
     @DisplayName("Debe fallar si ML devuelve precio negativo")
     void shouldFailWhenMLReturnsNegative() {
-        TripFeatures features = new TripFeatures();
-        features.setDistance_km(10);
-        features.setDuration_min(10);
+        PredictTripCommand command = new PredictTripCommand(
+                10, 10, "A", "B", "STANDARD"
+        );
 
         // BigDecimal negativo
         when(mlPredictionPort.predict(any(TripFeatures.class)))
                 .thenReturn(new BigDecimal("-5.0"));
 
         assertThrows(PredictionServiceUnavailableException.class,
-                () -> useCase.execute(features));
+                () -> useCase.execute(command));
     }
 
     // ============================================================
@@ -258,9 +292,9 @@ class PredictTripPriceUseCaseTest {
     @Test
     @DisplayName("Debe fallar si save() devuelve null")
     void shouldFailWhenRepositoryReturnsNull() {
-        TripFeatures features = new TripFeatures();
-        features.setDistance_km(10);
-        features.setDuration_min(10);
+        PredictTripCommand command = new PredictTripCommand(
+                10, 10, "A", "B", "STANDARD"
+        );
 
         // ML devuelve BigDecimal válido
         when(mlPredictionPort.predict(any(TripFeatures.class)))
@@ -270,34 +304,34 @@ class PredictTripPriceUseCaseTest {
         when(tripRepositoryPort.save(any())).thenReturn(null);
 
         assertThrows(RuntimeException.class,
-                () -> useCase.execute(features));
+                () -> useCase.execute(command));
     }
 
     @Test
     @DisplayName("Debe fallar si save() devuelve Trip sin ID")
     void shouldFailWhenRepositoryReturnsTripWithoutId() {
-        TripFeatures features = new TripFeatures();
-        features.setDistance_km(10);
-        features.setDuration_min(10);
+        PredictTripCommand command = new PredictTripCommand(
+                10, 10, "A", "B", "STANDARD"
+        );
 
         // ML devuelve BigDecimal válido
         when(mlPredictionPort.predict(any(TripFeatures.class)))
                 .thenReturn(new BigDecimal("20.0"));
 
         // El repositorio devuelve un Trip sin ID
-        when(tripRepositoryPort.save(any()))
-                .thenReturn(new Trip(10, 10, new BigDecimal("20.0")));
+        Trip tripWithoutId = new Trip(10, 10, new BigDecimal("20.0"));
+        when(tripRepositoryPort.save(any())).thenReturn(tripWithoutId);
 
         assertThrows(RuntimeException.class,
-                () -> useCase.execute(features));
+                () -> useCase.execute(command));
     }
-
+    
     @Test
     @DisplayName("Debe fallar si save() lanza excepción")
     void shouldFailWhenRepositoryThrows() {
-        TripFeatures features = new TripFeatures();
-        features.setDistance_km(10);
-        features.setDuration_min(10);
+        PredictTripCommand command = new PredictTripCommand(
+                10, 10, "A", "B", "STANDARD"
+        );
 
         // ML devuelve BigDecimal válido
         when(mlPredictionPort.predict(any(TripFeatures.class)))
@@ -308,7 +342,7 @@ class PredictTripPriceUseCaseTest {
                 .thenThrow(new RuntimeException("DB error"));
 
         assertThrows(RuntimeException.class,
-                () -> useCase.execute(features));
+                () -> useCase.execute(command));
     }
 
     // ============================================================
@@ -318,9 +352,9 @@ class PredictTripPriceUseCaseTest {
     @Test
     @DisplayName("Debe continuar cuando la distancia es extremadamente alta")
     void shouldContinueWhenDistanceIsExtremelyHigh() {
-        TripFeatures features = new TripFeatures();
-        features.setDistance_km(1500);
-        features.setDuration_min(60);
+        PredictTripCommand command = new PredictTripCommand(
+                1500, 60, "A", "B", "STANDARD"
+        );
 
         when(mlPredictionPort.predict(any(TripFeatures.class)))
                 .thenReturn(new BigDecimal("100.00"));
@@ -332,7 +366,7 @@ class PredictTripPriceUseCaseTest {
             return saved;
         });
 
-        Trip trip = useCase.execute(features);
+        Trip trip = useCase.execute(command);
 
         assertEquals(new BigDecimal("100.00"), trip.getEstimated_price());
         assertEquals(1L, trip.getId());
@@ -341,9 +375,9 @@ class PredictTripPriceUseCaseTest {
     @Test
     @DisplayName("Debe continuar cuando el precio es extremadamente alto")
     void shouldContinueWhenPriceIsExtremelyHigh() {
-        TripFeatures features = new TripFeatures();
-        features.setDistance_km(10);
-        features.setDuration_min(10);
+        PredictTripCommand command = new PredictTripCommand(
+                10, 10, "A", "B", "STANDARD"
+        );
 
         when(mlPredictionPort.predict(any(TripFeatures.class)))
                 .thenReturn(new BigDecimal("15000.00"));
@@ -355,18 +389,19 @@ class PredictTripPriceUseCaseTest {
             return saved;
         });
 
-        Trip trip = useCase.execute(features);
+        Trip trip = useCase.execute(command);
 
         assertEquals(new BigDecimal("15000.00"), trip.getEstimated_price());
         assertEquals(1L, trip.getId());
     }
-
+    
+    
     @Test
     @DisplayName("Debe continuar cuando la duración es extremadamente alta")
     void shouldContinueWhenDurationIsExtremelyHigh() {
-        TripFeatures features = new TripFeatures();
-        features.setDistance_km(10);
-        features.setDuration_min(2000);
+        PredictTripCommand command = new PredictTripCommand(
+                10, 2000, "A", "B", "STANDARD"
+        );
 
         when(mlPredictionPort.predict(any(TripFeatures.class)))
                 .thenReturn(new BigDecimal("50.00"));
@@ -378,7 +413,7 @@ class PredictTripPriceUseCaseTest {
             return saved;
         });
 
-        Trip trip = useCase.execute(features);
+        Trip trip = useCase.execute(command);
 
         assertEquals(new BigDecimal("50.00"), trip.getEstimated_price());
         assertEquals(1L, trip.getId());
@@ -391,9 +426,9 @@ class PredictTripPriceUseCaseTest {
     @Test
     @DisplayName("Flujo completo correcto")
     void shouldWorkCorrectly() {
-        TripFeatures features = new TripFeatures();
-        features.setDistance_km(10);
-        features.setDuration_min(10);
+        PredictTripCommand command = new PredictTripCommand(
+                10, 10, "A", "B", "STANDARD"
+        );
 
         when(mlPredictionPort.predict(any(TripFeatures.class)))
                 .thenReturn(new BigDecimal("20.00"));
@@ -405,12 +440,11 @@ class PredictTripPriceUseCaseTest {
             return saved;
         });
 
-        Trip trip = useCase.execute(features);
+        Trip trip = useCase.execute(command);
 
         assertEquals(new BigDecimal("20.00"), trip.getEstimated_price());
         assertEquals(1L, trip.getId());
     }
-    
     
     /**
      * concurrencia
@@ -422,7 +456,9 @@ class PredictTripPriceUseCaseTest {
         ExecutorService executor = Executors.newFixedThreadPool(threads);
 
         // Mock de ML y repositorio
-        when(mlPredictionPort.predict(any(TripFeatures.class))).thenReturn(new BigDecimal("20.00"));
+        when(mlPredictionPort.predict(any(TripFeatures.class)))
+                .thenReturn(new BigDecimal("20.00"));
+
         when(tripRepositoryPort.save(any())).thenAnswer(invocation -> {
             Trip original = invocation.getArgument(0);
             Trip saved = spy(original);
@@ -434,10 +470,10 @@ class PredictTripPriceUseCaseTest {
         List<Callable<Trip>> tasks = new ArrayList<>();
         for (int i = 0; i < threads; i++) {
             tasks.add(() -> {
-                TripFeatures features = new TripFeatures();
-                features.setDistance_km(10.0);
-                features.setDuration_min(10.0);
-                return useCase.execute(features);
+                PredictTripCommand command = new PredictTripCommand(
+                        10.0, 10.0, "A", "B", "STANDARD"
+                );
+                return useCase.execute(command);
             });
         }
 
