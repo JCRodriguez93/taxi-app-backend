@@ -3,7 +3,7 @@ package com.jorge.taxi.infrastructure.adapter.in.web;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import com.jorge.taxi.application.model.PredictTripCommand;
+import com.jorge.taxi.application.command.PredictTripCommand;
 import com.jorge.taxi.application.usecase.prediction.PredictTripPriceUseCase;
 import com.jorge.taxi.domain.Trip;
 import com.jorge.taxi.infrastructure.adapter.in.web.dto.TripRequest;
@@ -70,18 +70,16 @@ public class PredictionController {
     }
 
     @PostMapping
-    public ResponseEntity<Trip> predict(@Valid @RequestBody TripRequest request) {
+    public Trip predict(@Valid @RequestBody TripRequest request) {
 
         PredictTripCommand command = new PredictTripCommand(
-                request.getDistance_km(),
-                request.getDuration_min(),
-                request.getOrigin_zone(),
-                request.getDestination_zone(),
-                request.getVehicle_type()
+                request.getDistanceKm(),
+                request.getDurationMin(),
+                request.getOriginZone(),
+                request.getDestinationZone(),
+                request.getVehicleType()
         );
 
-        Trip trip = useCase.execute(command);
-
-        return ResponseEntity.ok(trip);
+        return useCase.execute(command);
     }
 }

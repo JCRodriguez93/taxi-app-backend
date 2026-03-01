@@ -81,7 +81,7 @@ class TripStatusTransitionTest {
         trip.complete();
 
         assertEquals(TripStatus.COMPLETED, trip.getStatus());
-        assertNotNull(trip.getEnd_time());
+        assertNotNull(trip.getEndTime());
     }
 
     @Test

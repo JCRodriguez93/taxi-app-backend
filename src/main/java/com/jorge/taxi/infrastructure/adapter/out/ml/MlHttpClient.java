@@ -24,7 +24,7 @@ import com.jorge.taxi.infrastructure.config.MlServiceProperties;
  * No implementa el puerto. Es un detalle técnico interno
  * del adaptador ML.
  * 
-* @author Jorge Campos Rodríguez
+ * @author Jorge Campos Rodríguez
  * @version 1.0.6
  */
 @Component
@@ -72,7 +72,7 @@ public class MlHttpClient {
                         "ML service returned null response");
             }
 
-            BigDecimal price = response.getEstimated_price();
+            BigDecimal price = response.getEstimatedPrice();
 
             if (price == null || price.compareTo(BigDecimal.ZERO) < 0) {
                 throw new PredictionServiceUnavailableException(

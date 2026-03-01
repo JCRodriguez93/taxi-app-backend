@@ -50,7 +50,7 @@ class MlHttpClientTest {
     @DisplayName("Debería devolver el precio estimado correctamente")
     void predict_shouldReturnCorrectPrice() {
         PredictionResponse response = new PredictionResponse();
-        response.setEstimated_price(new BigDecimal("25.00"));
+        response.setEstimatePrice(new BigDecimal("25.00"));
 
         when(restTemplate.postForObject(anyString(), any(), eq(PredictionResponse.class)))
                 .thenReturn(response);
@@ -62,6 +62,7 @@ class MlHttpClientTest {
         verify(restTemplate, times(1))
                 .postForObject(anyString(), any(), eq(PredictionResponse.class));
     }
+
 
     // ============================================================
     // 2. Respuesta nula o inválida
@@ -85,7 +86,7 @@ class MlHttpClientTest {
     @DisplayName("Debería lanzar excepción si el precio es inválido (simulación de NaN)")
     void predict_whenPriceIsNaN_shouldThrowException() {
         PredictionResponse response = new PredictionResponse();
-        response.setEstimated_price(null); // BigDecimal no puede ser NaN
+        response.setEstimatePrice(null); // BigDecimal no puede ser NaN
 
         when(restTemplate.postForObject(anyString(), any(), eq(PredictionResponse.class)))
                 .thenReturn(response);
@@ -98,7 +99,7 @@ class MlHttpClientTest {
     @DisplayName("Debería lanzar excepción si el precio es inválido (simulación de infinito)")
     void predict_whenPriceIsInfinite_shouldThrowException() {
         PredictionResponse response = new PredictionResponse();
-        response.setEstimated_price(null); // BigDecimal no puede ser infinito
+        response.setEstimatePrice(null); // BigDecimal no puede ser infinito
 
         when(restTemplate.postForObject(anyString(), any(), eq(PredictionResponse.class)))
                 .thenReturn(response);
@@ -111,7 +112,7 @@ class MlHttpClientTest {
     @DisplayName("Debería lanzar excepción si el precio es negativo")
     void predict_whenPriceIsNegative_shouldThrowException() {
         PredictionResponse response = new PredictionResponse();
-        response.setEstimated_price(new BigDecimal(-5.0));
+        response.setEstimatePrice(new BigDecimal(-5.0));
 
         when(restTemplate.postForObject(anyString(), any(), eq(PredictionResponse.class)))
                 .thenReturn(response);
@@ -188,7 +189,7 @@ class MlHttpClientTest {
     void predict_shouldHandleConcurrentCalls() throws Exception {
         // Preparar respuesta simulada
         PredictionResponse response = new PredictionResponse();
-        response.setEstimated_price(new BigDecimal("30.0"));
+        response.setEstimatePrice(new BigDecimal("30.0"));
 
         when(restTemplate.postForObject(anyString(), any(), eq(PredictionResponse.class)))
                 .thenReturn(response);
@@ -239,7 +240,7 @@ class MlHttpClientTest {
                         throw new RestClientException("Timeout simulado");
                     } else {
                         PredictionResponse response = new PredictionResponse();
-                        response.setEstimated_price(new BigDecimal("42.0"));
+                        response.setEstimatePrice(new BigDecimal("42.0"));
                         return response;
                     }
                 });
@@ -291,13 +292,13 @@ class MlHttpClientTest {
             PredictionResponse response = new PredictionResponse();
 
             if (rnd < 0.2) return null; // 20% null
-            if (rnd < 0.4) { response.setEstimated_price(null); return response; } // 20% inválido
-            if (rnd < 0.6) { response.setEstimated_price(null); return response; } // 20% inválido
-            if (rnd < 0.8) { response.setEstimated_price(new BigDecimal("-10.0")); return response; } // 20% negativo
+            if (rnd < 0.4) { response.setEstimatePrice(null); return response; } // 20% inválido
+            if (rnd < 0.6) { response.setEstimatePrice(null); return response; } // 20% inválido
+            if (rnd < 0.8) { response.setEstimatePrice(new BigDecimal("-10.0")); return response; } // 20% negativo
             if (rnd < 0.9) throw new ResourceAccessException("Timeout extremo"); // 10% timeout
 
             // 10% éxito real
-            response.setEstimated_price(new BigDecimal("42.00"));
+            response.setEstimatePrice(new BigDecimal("42.00"));
             return response;
         });
 

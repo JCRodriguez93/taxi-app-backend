@@ -1,10 +1,10 @@
 package com.jorge.taxi.application.usecase;
 
+import com.jorge.taxi.application.command.PredictTripCommand;
 import com.jorge.taxi.application.exception.PredictionServiceUnavailableException;
 import com.jorge.taxi.application.port.out.MlPredictionPort;
 import com.jorge.taxi.application.port.out.TripRepositoryPort;
 import com.jorge.taxi.application.usecase.prediction.PredictTripPriceUseCase;
-import com.jorge.taxi.application.model.PredictTripCommand;
 import com.jorge.taxi.domain.Trip;
 import com.jorge.taxi.domain.TripStatus;
 import com.jorge.taxi.domain.VehicleType;
@@ -90,7 +90,7 @@ class PredictTripPriceUseCaseTest {
 
         assertNotNull(result);
         assertEquals(savedTrip.getId(), result.getId());
-        assertEquals(predictedPrice, result.getEstimated_price());
+        assertEquals(predictedPrice, result.getEstimatedPrice());
         verify(mlPredictionPort, times(1)).predict(any(TripFeatures.class));
         verify(tripRepositoryPort, times(1)).save(any(Trip.class));
     }
@@ -182,7 +182,7 @@ class PredictTripPriceUseCaseTest {
         Trip trip = useCase.execute(command);
 
         // Comparación correcta con BigDecimal
-        assertEquals(new BigDecimal("10.0"), trip.getEstimated_price());
+        assertEquals(new BigDecimal("10.0"), trip.getEstimatedPrice());
         assertEquals(1L, trip.getId());
     }
 
@@ -319,7 +319,7 @@ class PredictTripPriceUseCaseTest {
                 .thenReturn(new BigDecimal("20.0"));
 
         // El repositorio devuelve un Trip sin ID
-        Trip tripWithoutId = new Trip(10, 10, new BigDecimal("20.0"));
+        Trip tripWithoutId = new Trip(10, 10, new BigDecimal("20.0"), null, null, null, null, null);
         when(tripRepositoryPort.save(any())).thenReturn(tripWithoutId);
 
         assertThrows(RuntimeException.class,
@@ -368,7 +368,7 @@ class PredictTripPriceUseCaseTest {
 
         Trip trip = useCase.execute(command);
 
-        assertEquals(new BigDecimal("100.00"), trip.getEstimated_price());
+        assertEquals(new BigDecimal("100.00"), trip.getEstimatedPrice());
         assertEquals(1L, trip.getId());
     }
 
@@ -391,7 +391,7 @@ class PredictTripPriceUseCaseTest {
 
         Trip trip = useCase.execute(command);
 
-        assertEquals(new BigDecimal("15000.00"), trip.getEstimated_price());
+        assertEquals(new BigDecimal("15000.00"), trip.getEstimatedPrice());
         assertEquals(1L, trip.getId());
     }
     
@@ -415,7 +415,7 @@ class PredictTripPriceUseCaseTest {
 
         Trip trip = useCase.execute(command);
 
-        assertEquals(new BigDecimal("50.00"), trip.getEstimated_price());
+        assertEquals(new BigDecimal("50.00"), trip.getEstimatedPrice());
         assertEquals(1L, trip.getId());
     }
 
@@ -442,7 +442,7 @@ class PredictTripPriceUseCaseTest {
 
         Trip trip = useCase.execute(command);
 
-        assertEquals(new BigDecimal("20.00"), trip.getEstimated_price());
+        assertEquals(new BigDecimal("20.00"), trip.getEstimatedPrice());
         assertEquals(1L, trip.getId());
     }
     
@@ -483,7 +483,7 @@ class PredictTripPriceUseCaseTest {
         // Comprobamos que cada Trip es correcto
         for (Future<Trip> future : results) {
             Trip trip = future.get();
-            assertEquals(new BigDecimal("20.00"), trip.getEstimated_price());
+            assertEquals(new BigDecimal("20.00"), trip.getEstimatedPrice());
             assertNotNull(trip.getId());
         }
 

@@ -38,14 +38,14 @@ class TripTest {
 			    LocalDateTime.now()
 			);
 
-	    assertEquals(10.0, trip.getDistance_km());
-	    assertEquals(15.0, trip.getDuration_min());
-	    assertEquals(new BigDecimal("25.00"), trip.getEstimated_price());
-	    assertEquals("Centro", trip.getOrigin_zone());
-	    assertEquals("Aeropuerto",trip.getDestination_zone());
-	    assertEquals(VehicleType.STANDARD, trip.getVehicle_type());
+	    assertEquals(10.0, trip.getDistanceKm());
+	    assertEquals(15.0, trip.getDurationMin());
+	    assertEquals(new BigDecimal("25.00"), trip.getEstimatedPrice());
+	    assertEquals("Centro", trip.getOriginZone());
+	    assertEquals("Aeropuerto",trip.getDestinationZone());
+	    assertEquals(VehicleType.STANDARD, trip.getVehicleType());
 	    assertEquals(TripStatus.PENDING, trip.getStatus());
-	    assertNotNull(trip.getCreated_at());
+	    assertNotNull(trip.getCreatedAt());
 	}
 
     @Test
@@ -53,31 +53,31 @@ class TripTest {
     void setters() {
         Trip trip = new Trip();
 
-        trip.setDistance_km(12.0);
-        trip.setDuration_min(18.0);
-        trip.setEstimated_price(new BigDecimal("30.00"));
+        trip.setDistanceKm(12.0);
+        trip.setDurationMin(18.0);
+        trip.setEstimatedPrice(new BigDecimal("30.00"));
 
-        assertEquals(12.0, trip.getDistance_km());
-        assertEquals(18.0, trip.getDuration_min());
-        assertEquals(new BigDecimal("30.00"), trip.getEstimated_price());
+        assertEquals(12.0, trip.getDistanceKm());
+        assertEquals(18.0, trip.getDurationMin());
+        assertEquals(new BigDecimal("30.00"), trip.getEstimatedPrice());
     }
 
     @Test
     @DisplayName("Debería asignar created_at automáticamente en @PrePersist si está en null")
     void prePersist_shouldSetCreatedAtIfNull() {
         Trip trip = new Trip();
-        assertNull(trip.getCreated_at());
+        assertNull(trip.getCreatedAt());
 
         trip.onCreate();
 
-        assertNotNull(trip.getCreated_at());
+        assertNotNull(trip.getCreatedAt());
     }
 
     @Test
     @DisplayName("equals() debería considerar iguales dos Trips con mismos valores (incluyendo created_at)")
     void equals_shouldReturnTrueForEqualTrips() throws Exception {
-        Trip t1 = new Trip(10.0, 20.0, new BigDecimal(30.0));
-        Trip t2 = new Trip(10.0, 20.0, new BigDecimal(30.0));
+        Trip t1 = new Trip(10.0, 20.0, new BigDecimal(30.0), null, null, null, null, null);
+        Trip t2 = new Trip(10.0, 20.0, new BigDecimal(30.0), null, null, null, null, null);
 
         LocalDateTime now = LocalDateTime.now().withNano(0);
         setCreatedAt(t1, now);
@@ -90,8 +90,8 @@ class TripTest {
     @Test
     @DisplayName("equals() debería devolver false para Trips distintos")
     void equals_shouldReturnFalseForDifferentTrips() {
-        Trip t1 = new Trip(10.0, 20.0, new BigDecimal(30.0));
-        Trip t2 = new Trip(99.0, 20.0, new BigDecimal(30.0));
+        Trip t1 = new Trip(10.0, 20.0, new BigDecimal(30.0), null, null, null, null, null);
+        Trip t2 = new Trip(99.0, 20.0, new BigDecimal(30.0), null, null, null, null, null);
 
         t1.onCreate();
         t2.onCreate();
@@ -102,7 +102,7 @@ class TripTest {
     @Test
     @DisplayName("equals() debería devolver false al comparar con null o con otra clase")
     void equals_shouldHandleNullAndDifferentClass() {
-        Trip trip = new Trip(10.0, 20.0, new BigDecimal(30.0));
+        Trip trip = new Trip(10.0, 20.0, new BigDecimal(30.0), null, null, null, null, null);
         trip.onCreate();
 
         assertNotEquals(trip, null);
@@ -112,7 +112,7 @@ class TripTest {
     @Test
     @DisplayName("equals() debería devolver true cuando se compara el objeto consigo mismo")
     void equals_shouldReturnTrueWhenComparingSameInstance() {
-        Trip trip = new Trip(10.0, 20.0, new BigDecimal(30.0));
+        Trip trip = new Trip(10.0, 20.0, new BigDecimal(30.0), null, null, null, null, null);
         trip.onCreate();
 
         assertTrue(trip.equals(trip));
@@ -121,8 +121,8 @@ class TripTest {
     @Test
     @DisplayName("hashCode() debería ser consistente con equals()")
     void hashCode_shouldBeConsistentWithEquals() throws Exception {
-        Trip t1 = new Trip(5.0, 10.0, new BigDecimal(15.0));
-        Trip t2 = new Trip(5.0, 10.0, new BigDecimal(15.0));
+        Trip t1 = new Trip(5.0, 10.0, new BigDecimal(15.0), null, null, null, null, null);
+        Trip t2 = new Trip(5.0, 10.0, new BigDecimal(15.0), null, null, null, null, null);
 
         LocalDateTime now = LocalDateTime.now().withNano(0);
         setCreatedAt(t1, now);
@@ -133,23 +133,23 @@ class TripTest {
     }
 
     @Test
-    @DisplayName("toString() debería contener información relevante del Trip")
-    void toString_shouldContainFields() {
-        Trip trip = new Trip(10.0, 20.0, new BigDecimal (30.0));
+    @DisplayName("toString() debería incluir valores clave del Trip")
+    void toString_shouldIncludeValues() {
+        Trip trip = new Trip(10.0, 20.0, new BigDecimal("30.00"), null, null, null, null, null);
         trip.onCreate();
 
         String str = trip.toString();
 
-        assertTrue(str.contains("distance_km"));
-        assertTrue(str.contains("duration_min"));
-        assertTrue(str.contains("estimated_price"));
-        assertTrue(str.contains("created_at"));
+        assertTrue(str.contains("10.0"));
+        assertTrue(str.contains("20.0"));
+        assertTrue(str.contains("30.00"));
+        assertTrue(str.contains(trip.getCreatedAt().toString()));
     }
 
     // ==================== Helpers ====================
 
     private void setCreatedAt(Trip trip, LocalDateTime value) throws Exception {
-        Field field = Trip.class.getDeclaredField("created_at");
+        Field field = Trip.class.getDeclaredField("createdAt");
         field.setAccessible(true);
         field.set(trip, value);
     }

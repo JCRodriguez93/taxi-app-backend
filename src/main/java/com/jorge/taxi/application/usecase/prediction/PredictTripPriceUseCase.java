@@ -6,8 +6,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import com.jorge.taxi.application.command.PredictTripCommand;
 import com.jorge.taxi.application.exception.PredictionServiceUnavailableException;
-import com.jorge.taxi.application.model.PredictTripCommand;
 import com.jorge.taxi.application.port.out.MlPredictionPort;
 import com.jorge.taxi.application.port.out.TripRepositoryPort;
 import com.jorge.taxi.domain.Trip;
@@ -42,6 +42,9 @@ import com.jorge.taxi.infrastructure.adapter.out.ml.model.TripFeatures;
  * Caso de uso encargado de obtener una predicción del precio estimado
  * de un viaje a través del puerto de predicción y, opcionalmente,
  * registrar o persistir información relacionada con el viaje.
+ * 
+ * @author Jorge Campos Rodríguez
+ * @version 1.0.1
  */
 @Service
 public class PredictTripPriceUseCase {
@@ -94,8 +97,8 @@ public class PredictTripPriceUseCase {
             throw new IllegalArgumentException("PredictTripCommand no puede ser nulo");
         }
 
-        double distanceKm = command.getDistance_km();
-        double durationMin = command.getDuration_min();
+        double distanceKm = command.getDistanceKm();
+        double durationMin = command.getDurationMin();
 
         // ================= VALIDACIÓN DE PARÁMETROS =================
         if (Double.isNaN(distanceKm) || Double.isInfinite(distanceKm) || distanceKm <= 0) {
@@ -116,9 +119,9 @@ public class PredictTripPriceUseCase {
         TripFeatures features = new TripFeatures();
         features.setDistance_km(distanceKm);
         features.setDuration_min(durationMin);
-        features.setOrigin_zone(command.getOrigin_zone());
-        features.setDestination_zone(command.getDestination_zone());
-        features.setVehicle_type(command.getVehicle_type());
+        features.setOrigin_zone(command.getOriginZone());
+        features.setDestination_zone(command.getDestinationZone());
+        features.setVehicle_type(command.getVehicleType());
 
         // ================= LLAMADA AL SERVICIO ML =================
         BigDecimal price;
@@ -138,7 +141,7 @@ public class PredictTripPriceUseCase {
         // ================= CONVERSIÓN VEHICLE TYPE =================
         VehicleType vehicleTypeEnum;
         try {
-            vehicleTypeEnum = VehicleType.valueOf(command.getVehicle_type().toUpperCase());
+            vehicleTypeEnum = VehicleType.valueOf(command.getVehicleType().toUpperCase());
         } catch (Exception e) {
             vehicleTypeEnum = VehicleType.STANDARD;
         }
@@ -148,8 +151,8 @@ public class PredictTripPriceUseCase {
                 distanceKm,
                 durationMin,
                 price,
-                command.getOrigin_zone(),
-                command.getDestination_zone(),
+                command.getOriginZone(),
+                command.getDestinationZone(),
                 vehicleTypeEnum,
                 TripStatus.PENDING,
                 LocalDateTime.now()

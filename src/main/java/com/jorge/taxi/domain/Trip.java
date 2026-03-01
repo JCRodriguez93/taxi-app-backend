@@ -59,7 +59,7 @@ public class Trip {
 	 * </p>
 	 */
 	@Column(nullable = false)
-	private double distance_km;
+	private double distanceKm;
 
 	/**
 	 * Duración estimada o real del viaje en minutos.
@@ -69,7 +69,7 @@ public class Trip {
 	 * </p>
 	 */
 	@Column(nullable = false)
-	private double duration_min;
+	private double durationMin;
 
 	/**
 	 * Precio estimado calculado por el modelo de Machine Learning.
@@ -79,7 +79,7 @@ public class Trip {
 	 * </p>
 	 */
 	@Column(nullable = false)
-	private BigDecimal estimated_price;
+	private BigDecimal estimatedPrice;
 
 	/*TODO: Esto de las rutas debería convertirlo en un futuro en 
 	 * objetos, o usar la API de Google o algo para que sea lo
@@ -94,7 +94,7 @@ public class Trip {
 	 * </p>
 	 */
 	@Column(nullable = false)
-	private String origin_zone;
+	private String originZone;
 
 	/**
 	 * Zona geográfica de destino del viaje.
@@ -104,7 +104,7 @@ public class Trip {
 	 * </p>
 	 */
 	@Column(nullable = false)
-	private String destination_zone;
+	private String destinationZone;
 
 	/**
 	 * Tipo de vehículo utilizado para realizar el viaje.
@@ -115,7 +115,7 @@ public class Trip {
 	 */
 	@Enumerated(EnumType.STRING)
 	@Column(nullable = false)
-	private VehicleType vehicle_type;
+	private VehicleType vehicleType;
 
 	/**
 	 * Estado actual del viaje dentro del ciclo de vida del sistema.
@@ -136,14 +136,14 @@ public class Trip {
 	 * </p>
 	 */
 	@Column(nullable = false)
-	private LocalDateTime start_time;
+	private LocalDateTime startTime;
 
 	/**
 	 * Fecha y hora en la que el viaje finaliza.
 	 * Puede ser nulo hasta que el viaje se complete.
 	 */
 	@Column(nullable = true)
-	private LocalDateTime end_time;
+	private LocalDateTime endTime;
 
 	/**
 	 * Fecha y hora en la que el registro del viaje fue creado.
@@ -153,7 +153,7 @@ public class Trip {
 	 * </p>
 	 */
 	@Column(nullable = false, updatable = false)
-	private LocalDateTime created_at;
+	private LocalDateTime createdAt;
 
 	/**
 	 * Constructor sin parámetros para crear una
@@ -164,57 +164,35 @@ public class Trip {
     /**
      * Constructor principal para crear un viaje.
      *
-     * @param distance_km distancia en kilómetros
-     * @param duration_min duración en minutos
-     * @param estimated_price precio calculado por ML
-     * @param origin_zone zona de origen
-     * @param destination_zone zona de destino
-     * @param vehicle_type tipo de vehículo
+     * @param distanceKm distancia en kilómetros
+     * @param durationMin duración en minutos
+     * @param estimatedPrice precio calculado por ML
+     * @param originZone zona de origen
+     * @param destinationZone zona de destino
+     * @param vehicleType tipo de vehículo
      * @param status estado inicial del viaje
-     * @param start_time fecha y hora de inicio
+     * @param startTime fecha y hora de inicio
      */
-    public Trip(double distance_km,
-                double duration_min,
-                BigDecimal estimated_price,
-                String origin_zone,
-                String destination_zone,
-                VehicleType vehicle_type,
+    public Trip(double distanceKm,
+                double durationMin,
+                BigDecimal estimatedPrice,
+                String originZone,
+                String destinationZone,
+                VehicleType vehicleType,
                 TripStatus status,
-                LocalDateTime start_time) {
+                LocalDateTime startTime) {
 
-        this.distance_km = distance_km;
-        this.duration_min = duration_min;
-        this.estimated_price = estimated_price;
-        this.origin_zone = origin_zone;
-        this.destination_zone = destination_zone;
-        this.vehicle_type = vehicle_type;
+        this.distanceKm = distanceKm;
+        this.durationMin = durationMin;
+        this.estimatedPrice = estimatedPrice;
+        this.originZone = originZone;
+        this.destinationZone = destinationZone;
+        this.vehicleType = vehicleType;
         this.status = status;
-        this.start_time = start_time;
-        this.created_at = LocalDateTime.now();
+        this.startTime = startTime;
+        this.createdAt = LocalDateTime.now();
     }
     
-    
-
-    /**
-     * Crea una nueva instancia de un viaje utilizando únicamente los datos
-     * necesarios para el cálculo del precio estimado mediante modelos de
-     * machine learning.
-     *
-     * <p>Este constructor se emplea cuando el sistema necesita generar una
-     * predicción del coste del viaje antes de que exista un registro completo
-     * en la base de datos. Por ello, solo incluye distancia, duración y
-     * precio estimado.</p>
-     *
-     * @param distance_km distancia estimada del viaje en kilómetros.
-     * @param duration_min duración estimada del viaje en minutos.
-     * @param estimated_price precio estimado calculado por el modelo.
-     */
-    public Trip(double distance_km, double duration_min, BigDecimal estimated_price) {
-        super();
-        this.distance_km = distance_km;
-        this.duration_min = duration_min;
-        this.estimated_price = estimated_price;
-    }
 
     /**
      * Asigna automáticamente la fecha y hora de creación del viaje antes de
@@ -226,8 +204,8 @@ public class Trip {
      */
     @PrePersist
     protected void onCreate() {
-        if (created_at == null) {
-            created_at = LocalDateTime.now();
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
         }
     }
 	
@@ -274,7 +252,7 @@ public class Trip {
 	        throw new IllegalStateException("Trip must be IN_PROGRESS to complete");
 	    }
 	    this.status = TripStatus.COMPLETED;
-	    this.end_time = LocalDateTime.now();
+	    this.endTime = LocalDateTime.now();
 	}
 
 	/**
@@ -316,17 +294,17 @@ public class Trip {
 	 *
 	 * @return distancia en kilómetros.
 	 */
-	public double getDistance_km() {
-	    return distance_km;
+	public double getDistanceKm() {
+	    return distanceKm;
 	}
 
 	/**
 	 * Establece la distancia estimada del viaje en kilómetros.
 	 *
-	 * @param distance_km distancia total prevista del trayecto.
+	 * @param distanceKm distancia total prevista del trayecto.
 	 */
-	public void setDistance_km(double distance_km) {
-	    this.distance_km = distance_km;
+	public void setDistanceKm(double distanceKm) {
+	    this.distanceKm = distanceKm;
 	}
 
 	/**
@@ -334,17 +312,17 @@ public class Trip {
 	 *
 	 * @return duración en minutos.
 	 */
-	public double getDuration_min() {
-	    return duration_min;
+	public double getDurationMin() {
+	    return durationMin;
 	}
 
 	/**
 	 * Establece la duración estimada del viaje en minutos.
 	 *
-	 * @param duration_min tiempo previsto para completar el trayecto.
+	 * @param durationMin tiempo previsto para completar el trayecto.
 	 */
-	public void setDuration_min(double duration_min) {
-	    this.duration_min = duration_min;
+	public void setDurationMin(double durationMin) {
+	    this.durationMin = durationMin;
 	}
 
 	/**
@@ -352,17 +330,17 @@ public class Trip {
 	 *
 	 * @return precio estimado como {@link BigDecimal}.
 	 */
-	public BigDecimal getEstimated_price() {
-	    return estimated_price;
+	public BigDecimal getEstimatedPrice() {
+	    return estimatedPrice;
 	}
 
 	/**
 	 * Establece el precio estimado del viaje.
 	 *
-	 * @param estimated_price coste aproximado calculado antes de iniciar el viaje.
+	 * @param estimatedPrice coste aproximado calculado antes de iniciar el viaje.
 	 */
-	public void setEstimated_price(BigDecimal estimated_price) {
-	    this.estimated_price = estimated_price;
+	public void setEstimatedPrice(BigDecimal estimatedPrice) {
+	    this.estimatedPrice = estimatedPrice;
 	}
 
 	/**
@@ -370,17 +348,17 @@ public class Trip {
 	 *
 	 * @return zona de origen.
 	 */
-	public String getOrigin_zone() {
-	    return origin_zone;
+	public String getOriginZone() {
+	    return originZone;
 	}
 
 	/**
 	 * Establece la zona de origen del viaje.
 	 *
-	 * @param origin_zone ubicación inicial donde se recoge al pasajero.
+	 * @param originZone ubicación inicial donde se recoge al pasajero.
 	 */
-	public void setOrigin_zone(String origin_zone) {
-	    this.origin_zone = origin_zone;
+	public void setOriginZone(String originZone) {
+	    this.originZone = originZone;
 	}
 
 	/**
@@ -388,17 +366,17 @@ public class Trip {
 	 *
 	 * @return zona de destino.
 	 */
-	public String getDestination_zone() {
-	    return destination_zone;
+	public String getDestinationZone() {
+	    return destinationZone;
 	}
 
 	/**
 	 * Establece la zona de destino del viaje.
 	 *
-	 * @param destination_zone ubicación final donde se deja al pasajero.
+	 * @param destinationZone ubicación final donde se deja al pasajero.
 	 */
-	public void setDestination_zone(String destination_zone) {
-	    this.destination_zone = destination_zone;
+	public void setDestinationZone(String destinationZone) {
+	    this.destinationZone = destinationZone;
 	}
 
 	/**
@@ -406,17 +384,17 @@ public class Trip {
 	 *
 	 * @return tipo de vehículo.
 	 */
-	public VehicleType getVehicle_type() {
-	    return vehicle_type;
+	public VehicleType getVehicleType() {
+	    return vehicleType;
 	}
 
 	/**
 	 * Establece el tipo de vehículo solicitado para el viaje.
 	 *
-	 * @param vehicle_type categoría del vehículo (por ejemplo, estándar, XL, lujo).
+	 * @param vehicleType categoría del vehículo (por ejemplo, estándar, XL, lujo).
 	 */
-	public void setVehicle_type(VehicleType vehicle_type) {
-	    this.vehicle_type = vehicle_type;
+	public void setVehicleType(VehicleType vehicleType) {
+	    this.vehicleType = vehicleType;
 	}
 
 	/**
@@ -446,17 +424,17 @@ public class Trip {
 	 *
 	 * @return fecha y hora de inicio.
 	 */
-	public LocalDateTime getStart_time() {
-	    return start_time;
+	public LocalDateTime getStartTime() {
+	    return startTime;
 	}
 
 	/**
 	 * Establece la fecha y hora de inicio del viaje.
 	 *
-	 * @param start_time momento en que el conductor inicia el trayecto.
+	 * @param startTime momento en que el conductor inicia el trayecto.
 	 */
-	public void setStart_time(LocalDateTime start_time) {
-	    this.start_time = start_time;
+	public void setStartTime(LocalDateTime startTime) {
+	    this.startTime = startTime;
 	}
 
 	/**
@@ -464,17 +442,17 @@ public class Trip {
 	 *
 	 * @return fecha y hora de finalización, o {@code null} si aún no ha terminado.
 	 */
-	public LocalDateTime getEnd_time() {
-	    return end_time;
+	public LocalDateTime getEndTime() {
+	    return endTime;
 	}
 
 	/**
 	 * Establece la fecha y hora de finalización del viaje.
 	 *
-	 * @param end_time momento en que el viaje se da por completado.
+	 * @param endTime momento en que el viaje se da por completado.
 	 */
-	public void setEnd_time(LocalDateTime end_time) {
-	    this.end_time = end_time;
+	public void setEndTime(LocalDateTime endTime) {
+	    this.endTime = endTime;
 	}
 
 	/**
@@ -482,17 +460,17 @@ public class Trip {
 	 *
 	 * @return fecha de creación.
 	 */
-	public LocalDateTime getCreated_at() {
-	    return created_at;
+	public LocalDateTime getCreatedAt() {
+	    return createdAt;
 	}
 
 	/**
 	 * Establece la fecha y hora de creación del viaje.
 	 *
-	 * @param created_at momento en que el viaje fue registrado en el sistema.
+	 * @param createdAt momento en que el viaje fue registrado en el sistema.
 	 */
-	public void setCreated_at(LocalDateTime created_at) {
-	    this.created_at = created_at;
+	public void setCreatedAt(LocalDateTime createdAt) {
+	    this.createdAt = createdAt;
 	}
 
 	/**
@@ -507,8 +485,8 @@ public class Trip {
 	 */
 	@Override
 	public int hashCode() {
-	    return Objects.hash(created_at, destination_zone, distance_km, duration_min, end_time,
-	            estimated_price, id, origin_zone, start_time, status, vehicle_type);
+	    return Objects.hash(createdAt, destinationZone, distanceKm, durationMin, endTime,
+	            estimatedPrice, id, originZone, startTime, status, vehicleType);
 	}
 
 	/**
@@ -535,17 +513,17 @@ public class Trip {
 	    if (getClass() != obj.getClass())
 	        return false;
 	    Trip other = (Trip) obj;
-	    return Objects.equals(created_at, other.created_at)
-	            && Objects.equals(destination_zone, other.destination_zone)
-	            && Double.doubleToLongBits(distance_km) == Double.doubleToLongBits(other.distance_km)
-	            && Double.doubleToLongBits(duration_min) == Double.doubleToLongBits(other.duration_min)
-	            && Objects.equals(end_time, other.end_time)
-	            && Objects.equals(estimated_price, other.estimated_price)
+	    return Objects.equals(createdAt, other.createdAt)
+	            && Objects.equals(destinationZone, other.destinationZone)
+	            && Double.doubleToLongBits(distanceKm) == Double.doubleToLongBits(other.distanceKm)
+	            && Double.doubleToLongBits(durationMin) == Double.doubleToLongBits(other.durationMin)
+	            && Objects.equals(endTime, other.endTime)
+	            && Objects.equals(estimatedPrice, other.estimatedPrice)
 	            && Objects.equals(id, other.id)
-	            && Objects.equals(origin_zone, other.origin_zone)
-	            && Objects.equals(start_time, other.start_time)
+	            && Objects.equals(originZone, other.originZone)
+	            && Objects.equals(startTime, other.startTime)
 	            && status == other.status
-	            && vehicle_type == other.vehicle_type;
+	            && vehicleType == other.vehicleType;
 	}
 
 	/**
@@ -561,10 +539,10 @@ public class Trip {
 	 */
 	@Override
 	public String toString() {
-	    return "Trip [id=" + id + ", distance_km=" + distance_km + ", duration_min=" + duration_min
-	            + ", estimated_price=" + estimated_price + ", origin_zone=" + origin_zone + ", destination_zone="
-	            + destination_zone + ", vehicle_type=" + vehicle_type + ", status=" + status + ", start_time="
-	            + start_time + ", end_time=" + end_time + ", created_at=" + created_at + "]";
+	    return "Trip [id=" + id + ", distance_km=" + distanceKm + ", duration_min=" + durationMin
+	            + ", estimated_price=" + estimatedPrice + ", origin_zone=" + originZone + ", destination_zone="
+	            + destinationZone + ", vehicle_type=" + vehicleType + ", status=" + status + ", start_time="
+	            + startTime + ", end_time=" + endTime + ", created_at=" + createdAt + "]";
 	}
     
     
